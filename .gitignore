@@ -1,0 +1,10 @@
+# Codex local configuration
+.codex/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
