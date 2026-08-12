@@ -102,11 +102,40 @@
 
 > Documenta 3 de las historias de usuario principales utilizadas durante el desarrollo, teniendo en cuenta las buenas prácticas de producto al respecto.
 
-**Historia de Usuario 1**
+**Historia de Usuario 1 — HU-01: Registrar Recruiter**
 
-**Historia de Usuario 2**
+Como recruiter, quiero registrarme en RecruitLane, para acceder de forma segura a un espacio propio donde gestionar mis procesos de selección.
 
-**Historia de Usuario 3**
+**Criterios de aceptación**
+
+- **AC1 — Registro correcto:** Given que no existe un Recruiter registrado con el correo ingresado, When una persona completa el registro con un correo y contraseña válidos, Then el sistema crea una nueva cuenta de Recruiter y la cuenta queda disponible para autenticarse.
+- **AC2 — Correo duplicado:** Given que existe un Recruiter registrado con un determinado correo, When una persona intenta registrarse utilizando el mismo correo, Then el sistema rechaza el registro y no crea una segunda cuenta.
+- **AC3 — Protección de contraseña:** Given que una persona completa correctamente el registro, When el sistema persiste las credenciales del Recruiter, Then la contraseña original no se almacena en texto plano.
+- **AC4 — Pipeline inicial:** Given que una persona completa correctamente el registro, When se crea su cuenta de Recruiter, Then el sistema crea automáticamente su pipeline predeterminado con las etapas Applied, Screening, Interview, Offer, Hired y Rejected en ese orden.
+
+**Historia de Usuario 2 — HU-02: Crear una vacante**
+
+Como recruiter, quiero crear una vacante y asignarle un pipeline de selección, para gestionar las postulaciones mediante un proceso definido.
+
+**Criterios de aceptación**
+
+- **AC1 — Pipelines disponibles:** Given que el Recruiter está autenticado y dispone de pipelines propios, When inicia la creación de una vacante, Then puede seleccionar uno de sus pipelines disponibles y no puede seleccionar pipelines pertenecientes a otro Recruiter.
+- **AC2 — Creación correcta:** Given que el Recruiter está autenticado y seleccionó un pipeline propio, When crea una vacante con `title`, `company_name` y `description` válidos, Then el sistema crea la vacante asociada al pipeline seleccionado y queda inicialmente en estado `DRAFT`.
+- **AC3 — Campos requeridos:** Given que el Recruiter está creando una vacante, When omite `title`, `company_name` o `description`, Then el sistema rechaza la creación.
+- **AC4 — Pipeline fijo:** Given que existe una vacante, When el Recruiter intenta sustituir su pipeline, Then el sistema rechaza la modificación.
+- **AC5 — Inmutabilidad del pipeline utilizado:** Given que un pipeline personalizado fue asociado a una vacante, When el Recruiter intenta modificar su nombre o sus etapas, Then el sistema rechaza la modificación.
+
+**Historia de Usuario 3 — HU-03: Mover una candidatura entre etapas**
+
+Como recruiter, quiero mover una candidatura entre las etapas del pipeline de una vacante, para reflejar el avance del candidato dentro del proceso de selección.
+
+**Criterios de aceptación**
+
+- **AC1 — Movimiento válido:** Given que una Vacancy está en estado `OPEN` y contiene una Application activa, When el Recruiter mueve la Application a otra etapa del pipeline de la Vacancy, Then el sistema actualiza su etapa actual.
+- **AC2 — Movimiento no consecutivo:** Given que una Application pertenece a una Vacancy `OPEN`, When el Recruiter selecciona una etapa no consecutiva del mismo pipeline, Then el sistema permite el movimiento.
+- **AC3 — Etapa de otro pipeline:** Given que una Application pertenece a una Vacancy con un pipeline determinado, When el Recruiter intenta moverla a una etapa perteneciente a otro pipeline, Then el sistema rechaza el movimiento.
+- **AC4 — Vacante cerrada:** Given que una Vacancy está `FILLED` o `CANCELLED`, When el Recruiter intenta mover una de sus Applications, Then el sistema rechaza el movimiento y mantiene la Application en su etapa actual.
+- **AC5 — Ownership:** Given que una Application pertenece a otro Recruiter, When el Recruiter autenticado intenta modificar su etapa, Then el sistema rechaza la operación y no expone ni modifica la Application.
 
 ---
 
