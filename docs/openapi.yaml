@@ -1,0 +1,1222 @@
+openapi: 3.1.2
+info:
+  title: RecruitLane API
+  version: 0.1.0
+  description: API REST JSON del MVP de RecruitLane.
+servers:
+  - url: /api
+security:
+  - sessionCookie: []
+paths:
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Registrar un Recruiter
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Cuenta creada; no inicia sesión.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistrationSuccess'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '409': { $ref: '#/components/responses/RegistrationConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Iniciar sesión
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sesión iniciada; establece la cookie `session`.
+          headers:
+            Set-Cookie:
+              description: Establece la cookie HttpOnly `session`; su contenido no forma parte del contrato público.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/InvalidCredentials' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '429': { $ref: '#/components/responses/RateLimitExceeded' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Cerrar sesión
+      description: Operación idempotente que siempre intenta eliminar la cookie `session`.
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      responses:
+        '204':
+          description: Se intentó eliminar la cookie `session`; sin body.
+          headers:
+            Set-Cookie:
+              description: Indica el intento de eliminar la cookie `session`.
+              schema:
+                type: string
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Obtener el usuario autenticado
+      responses:
+        '200':
+          description: Usuario autenticado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /candidates:
+    post:
+      tags: [Candidates]
+      summary: Crear un candidato
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateCreateRequest'
+      responses:
+        '201':
+          description: Candidato creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '409': { $ref: '#/components/responses/CandidateEmailConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    get:
+      tags: [Candidates]
+      summary: Listar candidatos
+      description: Ordenado por `lastName` ASC y luego `firstName` ASC, sin distinguir mayúsculas/minúsculas.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Colección paginada de candidatos.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CandidatePage'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /candidates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Candidates]
+      summary: Obtener un candidato
+      responses:
+        '200':
+          description: Candidato solicitado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/CandidateNotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    patch:
+      tags: [Candidates]
+      summary: Actualizar un candidato
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CandidateUpdateRequest'
+      responses:
+        '200':
+          description: Representación actual del candidato, incluso para un no-op válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404': { $ref: '#/components/responses/CandidateNotFound' }
+        '409': { $ref: '#/components/responses/CandidateEmailConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /pipelines:
+    post:
+      tags: [Pipelines]
+      summary: Crear un pipeline personalizado
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineCreateRequest'
+      responses:
+        '201':
+          description: Pipeline creado con stages ordenadas por `position` ASC.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '409': { $ref: '#/components/responses/PipelineNameConflict' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    get:
+      tags: [Pipelines]
+      summary: Listar pipelines
+      description: Ordenado con el pipeline Default primero y luego los personalizados por `name` ASC, sin distinguir mayúsculas/minúsculas.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Colección paginada de pipelines.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelinePage'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /pipelines/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Pipelines]
+      summary: Obtener un pipeline
+      responses:
+        '200':
+          description: Pipeline solicitado con stages ordenadas por `position` ASC.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/PipelineNotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    patch:
+      tags: [Pipelines]
+      summary: Actualizar un pipeline editable
+      description: Si se incluye `stages`, representa la colección final completa y se sincroniza atómicamente; las stages de respuesta se ordenan por `position` ASC.
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PipelineUpdateRequest'
+      responses:
+        '200':
+          description: Representación actual del pipeline, incluso para un no-op válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pipeline'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404':
+          description: Pipeline o stage no encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                pipelineNotFound:
+                  value: { statusCode: 404, code: PIPELINE_NOT_FOUND, message: Pipeline not found }
+                stageNotFound:
+                  value: { statusCode: 404, code: PIPELINE_STAGE_NOT_FOUND, message: Pipeline stage not found }
+        '409':
+          description: El pipeline no es editable o su nombre entra en conflicto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notEditable:
+                  value: { statusCode: 409, code: PIPELINE_NOT_EDITABLE, message: This pipeline can no longer be modified }
+                nameConflict:
+                  value: { statusCode: 409, code: PIPELINE_NAME_CONFLICT, message: A pipeline with this name already exists }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    delete:
+      tags: [Pipelines]
+      summary: Eliminar lógicamente un pipeline editable
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      responses:
+        '204':
+          description: Pipeline eliminado lógicamente; sin body.
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404': { $ref: '#/components/responses/PipelineNotFound' }
+        '409': { $ref: '#/components/responses/PipelineNotEditable' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /vacancies:
+    post:
+      tags: [Vacancies]
+      summary: Crear una vacante
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VacancyCreateRequest'
+      responses:
+        '201':
+          description: Vacante creada en estado `DRAFT`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VacancyDetail'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404': { $ref: '#/components/responses/PipelineNotFound' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    get:
+      tags: [Vacancies]
+      summary: Listar vacantes
+      description: Ordenado por `createdAt` DESC.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/VacancyStatusFilter'
+      responses:
+        '200':
+          description: Colección paginada de summaries de vacantes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VacancyPage'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /vacancies/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Vacancies]
+      summary: Obtener una vacante
+      responses:
+        '200':
+          description: Detalle de la vacante, con stages ordenadas por `position` ASC.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VacancyDetail'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/VacancyNotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    patch:
+      tags: [Vacancies]
+      summary: Actualizar una vacante
+      description: Acepta actualización descriptiva o de estado, pero no ambas. Las transiciones de estado permitidas están definidas por el ciclo de vida de la vacante.
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VacancyUpdateRequest'
+      responses:
+        '200':
+          description: Representación actual de la vacante, incluso para un no-op válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VacancyDetail'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404': { $ref: '#/components/responses/VacancyNotFound' }
+        '409': { $ref: '#/components/responses/VacancyNotOpen' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /applications:
+    post:
+      tags: [Applications]
+      summary: Crear una postulación
+      description: La postulación nueva se asigna automáticamente a la stage de posición 1 del pipeline de la vacante.
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreateRequest'
+      responses:
+        '201':
+          description: Postulación creada con su detalle público.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetail'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404':
+          description: Candidate o Vacancy no visible o inexistente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                candidateNotFound:
+                  value: { statusCode: 404, code: CANDIDATE_NOT_FOUND, message: Candidate not found }
+                vacancyNotFound:
+                  value: { statusCode: 404, code: VACANCY_NOT_FOUND, message: Vacancy not found }
+        '409':
+          description: La vacancy no está abierta o ya existe una postulación activa para la combinación.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                vacancyNotOpen:
+                  value: { statusCode: 409, code: VACANCY_NOT_OPEN, message: The vacancy does not allow this operation }
+                applicationAlreadyExists:
+                  value: { statusCode: 409, code: APPLICATION_ALREADY_EXISTS, message: An active application already exists for this candidate and vacancy }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    get:
+      tags: [Applications]
+      summary: Listar postulaciones activas
+      description: Ordenado por `createdAt` DESC.
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/ApplicationVacancyFilter'
+      responses:
+        '200':
+          description: Colección paginada de summaries de postulaciones activas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationPage'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/VacancyNotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /applications/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ResourceId'
+    get:
+      tags: [Applications]
+      summary: Obtener una postulación activa
+      responses:
+        '200':
+          description: Detalle público de la postulación.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetail'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/ApplicationNotFound' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    patch:
+      tags: [Applications]
+      summary: Mover una postulación a una stage
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationUpdateRequest'
+      responses:
+        '200':
+          description: Detalle actual de la postulación, incluso para un movimiento no-op válido.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationDetail'
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404': { $ref: '#/components/responses/ApplicationNotFound' }
+        '409': { $ref: '#/components/responses/VacancyNotOpen' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    delete:
+      tags: [Applications]
+      summary: Eliminar lógicamente una postulación activa
+      parameters:
+        - $ref: '#/components/parameters/OriginHeader'
+        - $ref: '#/components/parameters/CsrfProtectionHeader'
+      responses:
+        '204':
+          description: Postulación eliminada lógicamente; sin body.
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/UnauthorizedRequest' }
+        '404': { $ref: '#/components/responses/ApplicationNotFound' }
+        '409': { $ref: '#/components/responses/VacancyNotOpen' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: JWT de sesión almacenado en una cookie HttpOnly.
+  parameters:
+    OriginHeader:
+      name: Origin
+      in: header
+      required: true
+      description: Debe coincidir con el mismo origen (scheme, host y port) de la aplicación.
+      schema:
+        type: string
+    CsrfProtectionHeader:
+      name: X-CSRF-Protection
+      in: header
+      required: true
+      description: Defensa para requests mutantes; no es un mecanismo de autenticación ni un token secreto.
+      schema:
+        type: string
+        const: '1'
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      description: UUID de un recurso. RecruitLane genera UUID v7, pero los inputs aceptan UUID estándar sin exigir versión ni casing.
+      schema:
+        type: string
+        format: uuid
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Página, con default 1. Solo acepta una representación decimal canónica positiva; una página fuera de rango devuelve una colección vacía con metadata correcta.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: Tamaño de página, con default 10. Solo acepta una representación decimal canónica positiva.
+      schema:
+        type: integer
+        minimum: 10
+        maximum: 100
+        default: 10
+    VacancyStatusFilter:
+      name: status
+      in: query
+      required: false
+      description: Filtro OR. Repita el parámetro para varios estados; valores duplicados se deduplican semánticamente.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items:
+          $ref: '#/components/schemas/VacancyStatus'
+    ApplicationVacancyFilter:
+      name: vacancyId
+      in: query
+      required: false
+      description: UUID escalar de una vacante visible. No acepta múltiples valores.
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    User:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName, email]
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          $ref: '#/components/schemas/PersonFirstName'
+        lastName:
+          $ref: '#/components/schemas/PersonLastName'
+        email:
+          $ref: '#/components/schemas/Email'
+    Candidate:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName, email, phone]
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          $ref: '#/components/schemas/PersonFirstName'
+        lastName:
+          $ref: '#/components/schemas/PersonLastName'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/Phone'
+    Pipeline:
+      type: object
+      additionalProperties: false
+      required: [id, name, isDefault, isEditable, stages]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/PipelineName'
+        isDefault:
+          type: boolean
+        isEditable:
+          type: boolean
+          description: Valor calculado; no se persiste.
+        stages:
+          type: array
+          description: Siempre ordenadas por `position` ASC.
+          items:
+            $ref: '#/components/schemas/PipelineStage'
+    PipelineStage:
+      type: object
+      additionalProperties: false
+      required: [id, name, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/PipelineStageName'
+        position:
+          type: integer
+          minimum: 1
+    VacancyStatus:
+      type: string
+      enum: [DRAFT, OPEN, FILLED, CANCELLED]
+    VacancyDetail:
+      type: object
+      additionalProperties: false
+      required: [id, title, companyName, description, status, createdAt, pipeline]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          $ref: '#/components/schemas/VacancyTitle'
+        companyName:
+          $ref: '#/components/schemas/CompanyName'
+        description:
+          $ref: '#/components/schemas/VacancyDescription'
+        status:
+          $ref: '#/components/schemas/VacancyStatus'
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha ISO 8601 en UTC.
+        pipeline:
+          $ref: '#/components/schemas/VacancyPipeline'
+    VacancyPipeline:
+      type: object
+      additionalProperties: false
+      required: [name, stages]
+      properties:
+        name:
+          $ref: '#/components/schemas/PipelineName'
+        stages:
+          type: array
+          description: Siempre ordenadas por `position` ASC.
+          items:
+            $ref: '#/components/schemas/PipelineStage'
+    VacancySummary:
+      type: object
+      additionalProperties: false
+      required: [id, title, companyName, createdAt, status, pipelineName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          $ref: '#/components/schemas/VacancyTitle'
+        companyName:
+          $ref: '#/components/schemas/CompanyName'
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha ISO 8601 en UTC.
+        status:
+          $ref: '#/components/schemas/VacancyStatus'
+        pipelineName:
+          $ref: '#/components/schemas/PipelineName'
+    ApplicationDetail:
+      type: object
+      additionalProperties: false
+      required: [id, createdAt, candidate, vacancy, pipeline, currentStage]
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha ISO 8601 en UTC.
+        candidate:
+          $ref: '#/components/schemas/Candidate'
+        vacancy:
+          $ref: '#/components/schemas/ApplicationVacancy'
+        pipeline:
+          $ref: '#/components/schemas/ApplicationPipeline'
+        currentStage:
+          $ref: '#/components/schemas/PipelineStage'
+    ApplicationSummary:
+      type: object
+      additionalProperties: false
+      required: [id, createdAt, candidate, vacancy, currentStage]
+      properties:
+        id:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+          description: Fecha ISO 8601 en UTC.
+        candidate:
+          $ref: '#/components/schemas/ApplicationCandidateSummary'
+        vacancy:
+          $ref: '#/components/schemas/ApplicationVacancySummary'
+        currentStage:
+          $ref: '#/components/schemas/PipelineStage'
+    ApplicationCandidateSummary:
+      type: object
+      additionalProperties: false
+      required: [id, firstName, lastName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          $ref: '#/components/schemas/PersonFirstName'
+        lastName:
+          $ref: '#/components/schemas/PersonLastName'
+    ApplicationVacancy:
+      type: object
+      additionalProperties: false
+      required: [id, title, companyName]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          $ref: '#/components/schemas/VacancyTitle'
+        companyName:
+          $ref: '#/components/schemas/CompanyName'
+    ApplicationVacancySummary:
+      type: object
+      additionalProperties: false
+      required: [id, title]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          $ref: '#/components/schemas/VacancyTitle'
+    ApplicationPipeline:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          $ref: '#/components/schemas/PipelineName'
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName, email, password]
+      properties:
+        firstName:
+          $ref: '#/components/schemas/PersonFirstName'
+        lastName:
+          $ref: '#/components/schemas/PersonLastName'
+        email:
+          $ref: '#/components/schemas/Email'
+        password:
+          $ref: '#/components/schemas/Password'
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          $ref: '#/components/schemas/Email'
+        password:
+          $ref: '#/components/schemas/Password'
+    RegistrationSuccess:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string
+          const: Account created successfully
+    CandidateCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName, email]
+      properties:
+        firstName:
+          $ref: '#/components/schemas/PersonFirstName'
+        lastName:
+          $ref: '#/components/schemas/PersonLastName'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/Phone'
+    CandidateUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        firstName:
+          $ref: '#/components/schemas/PersonFirstName'
+        lastName:
+          $ref: '#/components/schemas/PersonLastName'
+        email:
+          $ref: '#/components/schemas/Email'
+        phone:
+          $ref: '#/components/schemas/Phone'
+    PipelineCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, stages]
+      properties:
+        name:
+          $ref: '#/components/schemas/PipelineName'
+        stages:
+          type: array
+          minItems: 3
+          maxItems: 10
+          description: El orden físico no determina el resultado; `position` debe cubrir exactamente `1..n` y los nombres normalizados deben ser únicos.
+          items:
+            $ref: '#/components/schemas/PipelineStageCreateRequest'
+    PipelineUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          $ref: '#/components/schemas/PipelineName'
+        stages:
+          type: array
+          minItems: 3
+          maxItems: 10
+          description: Colección final completa. Las stages existentes incluyen `id`; las nuevas lo omiten. `position` debe cubrir exactamente `1..n` y los nombres normalizados deben ser únicos.
+          items:
+            $ref: '#/components/schemas/PipelineStageUpdateRequest'
+    PipelineStageCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, position]
+      properties:
+        name:
+          $ref: '#/components/schemas/PipelineStageName'
+        position:
+          type: integer
+          minimum: 1
+    PipelineStageUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          $ref: '#/components/schemas/PipelineStageName'
+        position:
+          type: integer
+          minimum: 1
+    VacancyCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [title, companyName, description, pipelineId]
+      properties:
+        title:
+          $ref: '#/components/schemas/VacancyTitle'
+        companyName:
+          $ref: '#/components/schemas/CompanyName'
+        description:
+          $ref: '#/components/schemas/VacancyDescription'
+        pipelineId:
+          type: string
+          format: uuid
+    VacancyUpdateRequest:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          minProperties: 1
+          properties:
+            title:
+              $ref: '#/components/schemas/VacancyTitle'
+            companyName:
+              $ref: '#/components/schemas/CompanyName'
+            description:
+              $ref: '#/components/schemas/VacancyDescription'
+        - type: object
+          additionalProperties: false
+          required: [status]
+          properties:
+            status:
+              $ref: '#/components/schemas/VacancyStatus'
+    ApplicationCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [candidateId, vacancyId]
+      properties:
+        candidateId:
+          type: string
+          format: uuid
+        vacancyId:
+          type: string
+          format: uuid
+    ApplicationUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [currentStageId]
+      properties:
+        currentStageId:
+          type: string
+          format: uuid
+    CandidatePage:
+      type: object
+      additionalProperties: false
+      required: [candidates, page, pageSize, totalItems, totalPages]
+      properties:
+        candidates:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candidate'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 10
+          maximum: 100
+        totalItems:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+    PipelinePage:
+      type: object
+      additionalProperties: false
+      required: [pipelines, page, pageSize, totalItems, totalPages]
+      properties:
+        pipelines:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pipeline'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 10
+          maximum: 100
+        totalItems:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+    VacancyPage:
+      type: object
+      additionalProperties: false
+      required: [vacancies, page, pageSize, totalItems, totalPages]
+      properties:
+        vacancies:
+          type: array
+          items:
+            $ref: '#/components/schemas/VacancySummary'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 10
+          maximum: 100
+        totalItems:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+    ApplicationPage:
+      type: object
+      additionalProperties: false
+      required: [applications, page, pageSize, totalItems, totalPages]
+      properties:
+        applications:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApplicationSummary'
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 10
+          maximum: 100
+        totalItems:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+    PersonFirstName:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Se recorta en los extremos y debe conservar al menos un carácter tras el recorte.
+    PersonLastName:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Se recorta en los extremos y debe conservar al menos un carácter tras el recorte.
+    Email:
+      type: string
+      format: email
+      maxLength: 200
+      description: Se recorta y convierte a minúsculas antes de validar, almacenar, buscar y comparar.
+    Password:
+      type: string
+      minLength: 15
+      maxLength: 128
+      description: Se valida exactamente como llega, sin trim, lowercase ni otra normalización.
+    Phone:
+      type: [string, 'null']
+      maxLength: 30
+      pattern: '^(?:[0-9]{6,30}|\+[0-9]{6,29})$'
+      description: Si es string, se recorta en los extremos; debe contener + opcional solo al inicio y entre 6 dígitos y 30 caracteres totales, sin espacios internos, paréntesis ni guiones.
+    PipelineName:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Se normaliza con trim, primera letra en mayúscula y resto en minúscula antes de validar y persistir.
+    PipelineStageName:
+      type: string
+      minLength: 1
+      maxLength: 100
+      description: Se normaliza con trim, primera letra en mayúscula y resto en minúscula antes de validar y persistir.
+    VacancyTitle:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: Se recorta en los extremos y debe conservar al menos un carácter tras el recorte.
+    CompanyName:
+      type: string
+      minLength: 1
+      maxLength: 200
+      description: Se recorta en los extremos y debe conservar al menos un carácter tras el recorte.
+    VacancyDescription:
+      type: string
+      minLength: 1
+      maxLength: 1500
+      description: Se recorta solo en los extremos, debe conservar al menos un carácter y preserva whitespace y saltos de línea internos.
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [statusCode, code, message]
+      properties:
+        statusCode:
+          type: integer
+        code:
+          type: string
+        message:
+          type: string
+    ValidationErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [statusCode, code, message, errors]
+      properties:
+        statusCode:
+          type: integer
+          const: 400
+        code:
+          type: string
+          const: VALIDATION_ERROR
+        message:
+          type: string
+          const: Invalid request data
+        errors:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                description: Usa dot notation con índice para campos anidados, por ejemplo `stages.1.position`; los errores globales usan `body`.
+              message:
+                type: string
+  responses:
+    ValidationError:
+      description: '`VALIDATION_ERROR` — Invalid request data.'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+    Unauthorized:
+      description: '`UNAUTHORIZED` — Authentication required.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 401, code: UNAUTHORIZED, message: Authentication required }
+    InvalidCredentials:
+      description: '`INVALID_CREDENTIALS` — Invalid email or password.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 401, code: INVALID_CREDENTIALS, message: Invalid email or password }
+    UnauthorizedRequest:
+      description: '`UNAUTHORIZED_REQUEST` — Request could not be verified.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 403, code: UNAUTHORIZED_REQUEST, message: Request could not be verified }
+    RegistrationConflict:
+      description: '`REGISTRATION_CONFLICT` — Unable to create account with the provided information.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 409, code: REGISTRATION_CONFLICT, message: Unable to create account with the provided information }
+    RateLimitExceeded:
+      description: '`RATE_LIMIT_EXCEEDED` — Too many requests. Please try again later.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 429, code: RATE_LIMIT_EXCEEDED, message: Too many requests. Please try again later. }
+    UnsupportedMediaType:
+      description: '`UNSUPPORTED_MEDIA_TYPE` — Content type is not supported.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 415, code: UNSUPPORTED_MEDIA_TYPE, message: Content type is not supported }
+    InternalServerError:
+      description: '`INTERNAL_SERVER_ERROR` — An unexpected error occurred.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 500, code: INTERNAL_SERVER_ERROR, message: An unexpected error occurred }
+    CandidateNotFound:
+      description: '`CANDIDATE_NOT_FOUND` — Candidate not found.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 404, code: CANDIDATE_NOT_FOUND, message: Candidate not found }
+    CandidateEmailConflict:
+      description: '`CANDIDATE_EMAIL_CONFLICT` — A candidate with this email already exists.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 409, code: CANDIDATE_EMAIL_CONFLICT, message: A candidate with this email already exists }
+    PipelineNotFound:
+      description: '`PIPELINE_NOT_FOUND` — Pipeline not found.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 404, code: PIPELINE_NOT_FOUND, message: Pipeline not found }
+    PipelineNotEditable:
+      description: '`PIPELINE_NOT_EDITABLE` — This pipeline can no longer be modified.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 409, code: PIPELINE_NOT_EDITABLE, message: This pipeline can no longer be modified }
+    PipelineNameConflict:
+      description: '`PIPELINE_NAME_CONFLICT` — A pipeline with this name already exists.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 409, code: PIPELINE_NAME_CONFLICT, message: A pipeline with this name already exists }
+    VacancyNotFound:
+      description: '`VACANCY_NOT_FOUND` — Vacancy not found.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 404, code: VACANCY_NOT_FOUND, message: Vacancy not found }
+    VacancyNotOpen:
+      description: '`VACANCY_NOT_OPEN` — The vacancy does not allow this operation.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 409, code: VACANCY_NOT_OPEN, message: The vacancy does not allow this operation }
+    ApplicationNotFound:
+      description: '`APPLICATION_NOT_FOUND` — Application not found.'
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+          example: { statusCode: 404, code: APPLICATION_NOT_FOUND, message: Application not found }

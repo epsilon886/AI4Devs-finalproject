@@ -54,20 +54,46 @@
 ## 2. Arquitectura del Sistema
 
 ### **2.1. Diagrama de arquitectura:**
-> Usa el formato que consideres más adecuado para representar los componentes principales de la aplicación y las tecnologías utilizadas. Explica si sigue algún patrón predefinido, justifica por qué se ha elegido esta arquitectura, y destaca los beneficios principales que aportan al proyecto y justifican su uso, así como sacrificios o déficits que implica.
+
+```mermaid
+flowchart LR
+    Browser[Navegador] --> Frontend[React SPA]
+    Frontend -->|REST/JSON · /api| Backend[NestJS\nAPI]
+    Backend --> Prisma[Prisma]
+    Prisma --> Database[(PostgreSQL)]
+```
+
+La arquitectura V1 aprobada es un monolito modular: una SPA de React y una única aplicación NestJS organizada por módulos de dominio, sin microservicios ni comunicación distribuida. Es adecuada para el MVP porque mantiene límites claros entre responsabilidades sin añadir complejidad operativa o contratos innecesarios.
+
+Sus beneficios principales son un desarrollo y despliegue más simples, una persistencia centralizada y una evolución gradual del producto. El trade-off frente a una arquitectura distribuida es que los componentes no se despliegan ni escalan de forma independiente; para el alcance actual, esa independencia no justifica su coste adicional.
 
 
 ### **2.2. Descripción de componentes principales:**
 
-> Describe los componentes más importantes, incluyendo la tecnología utilizada
+| Componente | Tecnologías principales | Responsabilidad |
+| --- | --- | --- |
+| Frontend | React, TypeScript y Vite | SPA que presenta la interfaz y consume la API mediante rutas relativas `/api`. |
+| API/backend | NestJS y REST/JSON | Aplicación modular que concentra las reglas de negocio y expone la API. |
+| Persistencia | Prisma y PostgreSQL | Acceso a datos y almacenamiento relacional del MVP. |
+| Workflow de desarrollo | Docker | Flujo oficial para ejecutar de forma coordinada frontend, backend, PostgreSQL y migraciones. |
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
-> Representa la estructura del proyecto y explica brevemente el propósito de las carpetas principales, así como si obedece a algún patrón o arquitectura específica.
+Actualmente el repositorio contiene los artefactos de documentación y OpenSpec, pero todavía no incluye una aplicación implementada ni los directorios `front/` y `back/`. Para la implementación V1, la estructura aprobada será un `pnpm workspace` con esta organización de alto nivel:
+
+```text
+front/    # SPA de React
+back/     # API REST modular de NestJS y acceso Prisma
+openspec/ # especificaciones y decisiones aprobadas
+```
+
+La organización prevista separa frontend y backend dentro de un único repositorio; el backend conserva el enfoque de monolito modular.
 
 ### **2.4. Infraestructura y despliegue**
 
-> Detalla la infraestructura del proyecto, incluyendo un diagrama en el formato que creas conveniente, y explica el proceso de despliegue que se sigue
+Docker es el workflow oficial de desarrollo de V1. La composición prevista coordinará los componentes de frontend, backend y PostgreSQL, junto con una tarea de migraciones de ejecución única. La configuración concreta de Docker todavía no está definida.
+
+El despliegue conceptual será de mismo origen: la SPA se servirá en la raíz HTTPS del host y las solicitudes a `/api` se enrutarán a NestJS. PostgreSQL permanecerá privado y no se expondrá públicamente. El proveedor de despliegue y el mecanismo concreto de proxy siguen pendientes de definición.
 
 ### **2.5. Seguridad**
 
@@ -83,12 +109,115 @@
 
 ### **3.1. Diagrama del modelo de datos:**
 
-> Recomendamos usar mermaid para el modelo de datos, y utilizar todos los parámetros que permite la sintaxis para dar el máximo detalle, por ejemplo las claves primarias y foráneas.
+El siguiente diagrama describe el modelo lógico aprobado. Los tipos mostrados son únicamente documentales; no definen un esquema físico ni una tecnología de persistencia.
+
+```mermaid
+erDiagram
+    User ||--o{ Candidate : owns
+    User ||--o{ Pipeline : owns
+    User ||--o{ Vacancy : owns
+
+    Pipeline ||--|{ PipelineStage : contains
+    Pipeline ||--o{ Vacancy : used_by
+
+    Candidate ||--o{ Application : has
+    Vacancy ||--o{ Application : receives
+    PipelineStage ||--o{ Application : current_stage
+
+    User {
+        uuid id PK
+        string first_name
+        string last_name
+        string email
+        string password_hash
+        datetime created_at
+        datetime updated_at
+    }
+
+    Candidate {
+        uuid id PK
+        uuid user_id FK
+        string first_name
+        string last_name
+        string email
+        string phone
+        datetime created_at
+        datetime updated_at
+    }
+
+    Pipeline {
+        uuid id PK
+        uuid user_id FK
+        string name
+        boolean is_default
+        datetime deleted_at
+        datetime created_at
+        datetime updated_at
+    }
+
+    PipelineStage {
+        uuid id PK
+        uuid pipeline_id FK
+        string name
+        integer position
+        datetime created_at
+        datetime updated_at
+    }
+
+    Vacancy {
+        uuid id PK
+        uuid user_id FK
+        uuid pipeline_id FK
+        string title
+        string company_name
+        string description
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+
+    Application {
+        uuid id PK
+        uuid vacancy_id FK
+        uuid candidate_id FK
+        uuid current_stage_id FK
+        datetime deleted_at
+        datetime created_at
+        datetime updated_at
+    }
+```
 
 
 ### **3.2. Descripción de entidades principales:**
 
-> Recuerda incluir el máximo detalle de cada entidad, como el nombre y tipo de cada atributo, descripción breve si procede, claves primarias y foráneas, relaciones y tipo de relación, restricciones (unique, not null…), etc.
+- **`User`**: representa la cuenta autenticada del Recruiter y funciona como propietario de candidatos, pipelines y vacantes, garantizando el aislamiento de recursos entre usuarios.
+
+- **`Candidate`**: representa una persona candidata gestionada por un Recruiter. Puede participar en múltiples procesos de selección mediante distintas `Application`.
+
+- **`Pipeline`**: define la estructura reutilizable de un proceso de selección. Pertenece a un Recruiter y está compuesto por etapas ordenadas; puede ser el pipeline predeterminado o uno personalizado.
+
+- **`PipelineStage`**: representa una etapa ordenada dentro de un `Pipeline`, como Applied, Screening o Interview. Las `Application` utilizan una de estas etapas como posición actual dentro del proceso.
+
+- **`Vacancy`**: representa una vacante gestionada por un Recruiter. Está asociada permanentemente a un único `Pipeline` y posee un ciclo de vida propio mediante los estados `DRAFT`, `OPEN`, `FILLED` y `CANCELLED`.
+
+- **`Application`**: representa la participación de un `Candidate` en una `Vacancy`. Resuelve la relación N:N entre ambos y mantiene únicamente la etapa actual del candidato dentro del pipeline de esa vacante.
+
+Las relaciones son: User 1:N Candidate, Pipeline y Vacancy; Pipeline 1:N PipelineStage y Vacancy; Candidate 1:N Application; Vacancy 1:N Application; y PipelineStage 1:N Application. La propiedad de Application se deriva de sus relaciones con Candidate y Vacancy, por lo que no tiene `user_id`.
+
+**Restricciones e invariantes lógicos:**
+
+- `User.email` es único globalmente.
+- `Candidate.email` es único dentro de su User propietario: `(user_id, email)`.
+- Cada User tiene exactamente un Pipeline predeterminado.
+- El Pipeline predeterminado nunca puede editarse ni eliminarse.
+- Un Pipeline personalizado contiene entre 3 y 10 PipelineStages ordenadas.
+- Los nombres y las posiciones de PipelineStage son únicos dentro de su Pipeline: `(pipeline_id, name)` y `(pipeline_id, position)`.
+- Cada Vacancy usa exactamente un Pipeline perteneciente al mismo User, y `Vacancy.pipeline_id` es inmutable tras crear la Vacancy.
+- Un Pipeline personalizado solo puede editarse y eliminarse lógicamente antes de su primera asociación con una Vacancy; a partir de entonces es permanentemente inmutable y no eliminable. Su editabilidad se deriva de ese historial de uso; no existe un campo `editable`.
+- Candidate y Vacancy vinculados por una Application deben pertenecer al mismo User.
+- `Application.current_stage_id` debe referenciar una PipelineStage del mismo Pipeline asignado a su Vacancy.
+- Solo puede existir una Application activa por combinación Candidate + Vacancy. Una Application eliminada lógicamente deja de participar en esa unicidad.
+- La eliminación lógica solo aplica a Pipeline y Application en el MVP; PipelineStage no usa eliminación lógica. La eliminación de Candidate y Vacancy no forma parte del MVP.
 
 ---
 
@@ -160,4 +289,3 @@ Como recruiter, quiero mover una candidatura entre las etapas del pipeline de un
 **Pull Request 2**
 
 **Pull Request 3**
-

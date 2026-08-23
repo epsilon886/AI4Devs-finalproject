@@ -10,7 +10,7 @@ RecruitLane necesita una definición verificable de su primer MVP para que el de
 - Define vacantes con un único pipeline, los estados permitidos y las transiciones de su ciclo de vida.
 - Define las postulaciones como la relación entre candidato y vacante: creación, etapa inicial, movimientos entre etapas, unicidad activa y eliminación lógica.
 - Establece el aislamiento de propiedad como regla funcional transversal y excluye explícitamente colaboración, organizaciones, automatizaciones, integraciones y otras capacidades fuera del MVP.
-- Mantiene sin decidir el stack, la arquitectura concreta de autenticación, el esquema físico de datos, las API y la infraestructura.
+- Documenta en `design.md` las decisiones técnicas de implementación aprobadas, sin alterar el alcance funcional del change.
 
 ## Capabilities
 
@@ -29,4 +29,4 @@ RecruitLane necesita una definición verificable de su primer MVP para que el de
 
 ## Impact
 
-No se modifica código, API, dependencias ni infraestructura. El cambio crea únicamente requisitos de producto y una guía de implementación futura; la tecnología, contratos de transporte, modelo físico de datos y configuración de seguridad quedan fuera de alcance.
+No se modifica código, API, dependencias ni infraestructura. El change incorpora requisitos de producto y documenta en `design.md` las decisiones aprobadas de tecnología, contratos de transporte, modelo físico de datos y configuración de seguridad.

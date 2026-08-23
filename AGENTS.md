@@ -12,21 +12,21 @@ Current top-level structure:
 - `.agents/skills/` contains repository-local agent skills, including the OpenSpec integration.
 - `AGENTS.md` defines persistent instructions for AI agents working in this repository.
 
-Application source code, tests, and additional project directories will be documented here once the implementation stack and structure are established.
+La arquitectura, la estructura prevista y la estrategia de pruebas aprobadas se documentan en el `design.md` vigente. El repositorio todavía no contiene código de aplicación, directorios de pruebas ni comandos ejecutables de ese stack.
 
 Do not introduce new top-level directories or architectural conventions without a concrete need.
 
 ## Source of Truth
 
-OpenSpec is the canonical source of truth for product behavior, business rules, architecture decisions, data-model changes, API contracts, and other material technical requirements.
+OpenSpec is the canonical source of truth for approved product requirements, behavior, business rules, architecture decisions, data-model changes, and other material changes. When `docs/openapi.yaml` exists, it is the canonical source of truth for the current HTTP contract: routes, methods, parameters, bodies, responses, schemas, and HTTP status codes. OpenAPI MUST remain aligned with approved OpenSpec requirements and MUST NOT introduce new behavior by itself.
 
 `readme.md` should reflect the implemented and approved specifications at a higher level, but it must not become a competing specification.
 
-If documentation, implementation, and OpenSpec disagree:
+If documentation, implementation, OpenSpec, or OpenAPI disagree:
 
 1. Do not silently choose one interpretation.
 2. Identify the inconsistency.
-3. Use the approved OpenSpec artifacts as the baseline.
+3. Resolve any conflict between OpenSpec and OpenAPI before implementing.
 4. Ask for clarification when the intended behavior cannot be determined safely.
 
 Do not implicitly modify established requirements while implementing a task.
@@ -181,7 +181,7 @@ When architecture, setup commands, project structure, testing commands, or devel
 
 ## Testing and Validation
 
-There is no application test stack defined yet.
+La estrategia de pruebas aprobada está documentada en el `design.md` vigente, pero aún no hay tooling ni comandos de prueba implementados en el repositorio.
 
 Once implementation tooling is introduced, document here the exact commands for:
 

@@ -27,11 +27,15 @@ Después de crear una vacante, `title`, `company_name` y `description` MUST pode
 - **THEN** el sistema rechaza el cambio de pipeline
 
 ### Requirement: Estados y transiciones de vacante
-Una vacante MUST tener uno de estos estados: `DRAFT`, `OPEN`, `FILLED` o `CANCELLED`. El sistema MUST permitir exclusivamente las transiciones `DRAFT` a `OPEN`, `OPEN` a `FILLED`, `OPEN` a `CANCELLED`, `FILLED` a `OPEN` y `CANCELLED` a `OPEN`, y MUST rechazar cualquier otra transición.
+Una vacante MUST tener uno de estos estados: `DRAFT`, `OPEN`, `FILLED` o `CANCELLED`. El sistema MUST permitir exclusivamente las transiciones `DRAFT` a `OPEN`, `OPEN` a `FILLED`, `OPEN` a `CANCELLED`, `FILLED` a `OPEN` y `CANCELLED` a `OPEN`, y MUST rechazar cualquier otra transición distinta de conservar el mismo estado. Un PATCH que solicita el estado actual MUST ser un no-op exitoso.
 
 #### Scenario: Transición permitida
 - **WHEN** un Recruiter cambia una vacante de `OPEN` a `FILLED`
 - **THEN** el sistema actualiza el estado a `FILLED`
+
+#### Scenario: Solicitud del estado actual
+- **WHEN** un Recruiter solicita mediante PATCH el mismo estado que ya tiene una vacante
+- **THEN** el sistema responde con éxito sin cambiar el estado
 
 #### Scenario: Transición no permitida
 - **WHEN** un Recruiter intenta cambiar una vacante de `DRAFT` a `FILLED`
@@ -54,3 +58,22 @@ El MVP MUST NOT ofrecer eliminación de vacantes ni estados o conceptos de publi
 #### Scenario: Solicitud fuera de alcance
 - **WHEN** un Recruiter intenta eliminar una vacante o cambiar una publicación de vacante
 - **THEN** el sistema no ofrece ni ejecuta esa operación en el MVP
+
+### Requirement: Contrato HTTP de Vacancies
+El sistema MUST exponer `POST /api/vacancies`, `GET /api/vacancies`, `GET /api/vacancies/:id` y `PATCH /api/vacancies/:id`; V1 no ofrece DELETE. POST requiere `title`, `companyName`, `description` y `pipelineId`, crea la Vacancy en `DRAFT` y responde `201`. `description` se recorta solo en los extremos, debe conservar al menos un carácter y tener como máximo 1500 caracteres, preservando whitespace y saltos de línea internos. Un `pipelineId` válido que no es visible, no existe o fue eliminado lógicamente responde `404 PIPELINE_NOT_FOUND`.
+
+El detalle público y las respuestas exitosas de POST/PATCH son `{ id, title, companyName, description, status, createdAt, pipeline: { name, stages: [{ id, name, position }] } }`; no expone `pipelineId` y sus stages se ordenan por `position` ASC. PATCH tiene dos modos mutuamente excluyentes: descriptivo con `title`, `companyName` y/o `description`, o de estado con solo `{ status }`. `{}`, combinar `status` con otro campo o enviar `pipelineId` es `400 VALIDATION_ERROR`. Solicitar el estado actual es un no-op válido con `200`; una transición no permitida o una operación del proceso de selección con la Vacancy no abierta responde `409 VACANCY_NOT_OPEN` con `The vacancy does not allow this operation`. Una Vacancy no visible o inexistente responde `404 VACANCY_NOT_FOUND`.
+
+El summary del listado es `{ id, title, companyName, createdAt, status, pipelineName }`. La colección está paginada, ordenada por `createdAt` DESC, y acepta únicamente el filtro opcional `status`. Sus valores múltiples se expresan repitiendo `status`, tienen semántica OR y los repetidos se deduplican; cualquier valor inválido invalida toda la request. No hay otros filtros en V1.
+
+#### Scenario: Creación HTTP de Vacancy
+- **WHEN** un Recruiter envía a `POST /api/vacancies` los cuatro campos requeridos con un Pipeline propio visible
+- **THEN** la API responde `201` con el detalle público en estado `DRAFT`
+
+#### Scenario: Actualización descriptiva de Vacancy
+- **WHEN** un Recruiter envía un PATCH descriptivo válido a `PATCH /api/vacancies/:id`
+- **THEN** la API responde `200` con la representación pública actualizada
+
+#### Scenario: Listado filtrado de Vacancies
+- **WHEN** un Recruiter consulta `GET /api/vacancies` repitiendo `status` con estados válidos
+- **THEN** la API responde `200` con el summary paginado de las Vacancies que coinciden con cualquiera de esos estados
