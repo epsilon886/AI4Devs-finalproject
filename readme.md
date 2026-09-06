@@ -15,9 +15,15 @@
 
 ### **0.1. Tu nombre completo:**
 
+Pablo Javier Samman
+
 ### **0.2. Nombre del proyecto:**
 
+RecruitLane
+
 ### **0.3. Descripción breve del proyecto:**
+
+RecruitLane es un MVP individual para que cada Recruiter gestione de forma aislada sus Candidates, Pipelines, Vacancies y Applications dentro de sus procesos de selección.
 
 ### **0.4. URL del proyecto:**
 
@@ -25,8 +31,7 @@
 
 ### 0.5. URL o archivo comprimido del repositorio
 
-> Puedes tenerlo alojado en público o en privado, en cuyo caso deberás compartir los accesos de manera segura. Puedes enviarlos a [alvaro@lidr.co](mailto:alvaro@lidr.co) usando algún servicio como [onetimesecret](https://onetimesecret.com/). También puedes compartir por correo un archivo zip con el contenido
-
+https://github.com/epsilon886/AI4Devs-finalproject
 
 ---
 
@@ -36,11 +41,18 @@
 
 ### **1.1. Objetivo:**
 
-> Propósito del producto. Qué valor aporta, qué soluciona, y para quién.
+El objetivo de RecruitLane es proporcionar a cada Recruiter un espacio individual para organizar la información esencial de sus procesos de selección: su cartera de Candidates, las Vacancies que gestiona, los Pipelines asociados y la etapa actual de cada Application. El MVP busca centralizar este seguimiento con reglas explícitas de propiedad y de ciclo de vida, sin incorporar colaboración ni estructuras organizacionales.
 
 ### **1.2. Características y funcionalidades principales:**
 
-> Enumera y describe las características y funcionalidades específicas que tiene el producto para satisfacer las necesidades identificadas.
+Las principales funcionalidades del MVP son:
+
+- **Acceso individual del Recruiter:** registro, inicio y cierre de sesión para operar en un espacio propio y aislado.
+- **Gestión de Candidates:** creación, consulta y actualización de Candidates propios con sus datos mínimos; el correo es único dentro de la cartera de cada Recruiter.
+- **Gestión de Pipelines:** creación de un Pipeline predeterminado `Default` para cada Recruiter, con sus PipelineStages iniciales, y gestión de Pipelines personalizados de entre tres y diez etapas. Un Pipeline personalizado solo puede editarse o eliminarse lógicamente antes de su primera asociación con una Vacancy; el predeterminado no se edita ni se elimina.
+- **Gestión de Vacancies:** creación y consulta de Vacancies propias, cada una vinculada de forma permanente a un único Pipeline. Comienzan en `DRAFT` y siguen el ciclo de estados definido entre `DRAFT`, `OPEN`, `FILLED` y `CANCELLED`.
+- **Gestión de Applications:** creación de una Application entre un Candidate y una Vacancy propios y abiertos, asignándola inicialmente a la primera PipelineStage. Mientras la Vacancy esté `OPEN`, la Application puede moverse entre las etapas de su Pipeline o eliminarse lógicamente.
+- **Aislamiento y límites del MVP:** los recursos pertenecen a un único Recruiter y no pueden compartirse ni combinarse entre Recruiters. El alcance no incluye organizaciones, equipos, roles configurables, invitaciones, colaboración, automatizaciones o integraciones; tampoco incluye eliminación de Candidates o Vacancies, recuperación de recursos eliminados ni historial de movimientos entre PipelineStages.
 
 ### **1.3. Diseño y experiencia de usuario:**
 
@@ -72,10 +84,10 @@ Sus beneficios principales son un desarrollo y despliegue más simples, una pers
 
 | Componente | Tecnologías principales | Responsabilidad |
 | --- | --- | --- |
-| Frontend | React, TypeScript y Vite | SPA que presenta la interfaz y consume la API mediante rutas relativas `/api`. |
-| API/backend | NestJS y REST/JSON | Aplicación modular que concentra las reglas de negocio y expone la API. |
-| Persistencia | Prisma y PostgreSQL | Acceso a datos y almacenamiento relacional del MVP. |
-| Workflow de desarrollo | Docker | Flujo oficial para ejecutar de forma coordinada frontend, backend, PostgreSQL y migraciones. |
+| Frontend | React, TypeScript y Vite | SPA prevista que presentará la interfaz y consumirá la API mediante rutas relativas `/api`. |
+| API/backend | NestJS y REST/JSON | Aplicación modular prevista que concentrará las reglas de negocio y expondrá la API. |
+| Persistencia | Prisma y PostgreSQL | Acceso a datos y almacenamiento relacional previstos para el MVP. |
+| Workflow de desarrollo | Docker | Flujo oficial previsto para coordinar frontend, backend, PostgreSQL y migraciones. |
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
@@ -109,7 +121,7 @@ El despliegue conceptual será de mismo origen: la SPA se servirá en la raíz H
 
 ### **3.1. Diagrama del modelo de datos:**
 
-El siguiente diagrama describe el modelo lógico aprobado. Los tipos mostrados son únicamente documentales; no definen un esquema físico ni una tecnología de persistencia.
+El siguiente diagrama describe el modelo lógico aprobado y sus convenciones físicas principales. La persistencia aprobada usa Prisma sobre PostgreSQL: los modelos Prisma se expresan en PascalCase con campos camelCase y se mapean a tablas plurales y columnas snake_case. Los tipos del diagrama son una representación documental simplificada de ese esquema físico.
 
 ```mermaid
 erDiagram
@@ -204,10 +216,13 @@ erDiagram
 
 Las relaciones son: User 1:N Candidate, Pipeline y Vacancy; Pipeline 1:N PipelineStage y Vacancy; Candidate 1:N Application; Vacancy 1:N Application; y PipelineStage 1:N Application. La propiedad de Application se deriva de sus relaciones con Candidate y Vacancy, por lo que no tiene `user_id`.
 
-**Restricciones e invariantes lógicos:**
+**Restricciones físicas e invariantes de dominio:**
 
+- Los identificadores son UUID v7 y las fechas se almacenan como `timestamptz` en UTC.
+- Las claves foráneas protegen las relaciones con una política equivalente a `onDelete: Restrict`; no hay eliminaciones en cascada.
 - `User.email` es único globalmente.
 - `Candidate.email` es único dentro de su User propietario: `(user_id, email)`.
+- El nombre normalizado de un Pipeline es único entre los Pipelines activos de un mismo User mediante un índice único parcial sobre `(user_id, name)` cuando `deleted_at IS NULL`; así puede reutilizarse tras una eliminación lógica.
 - Cada User tiene exactamente un Pipeline predeterminado.
 - El Pipeline predeterminado nunca puede editarse ni eliminarse.
 - Un Pipeline personalizado contiene entre 3 y 10 PipelineStages ordenadas.
@@ -216,7 +231,7 @@ Las relaciones son: User 1:N Candidate, Pipeline y Vacancy; Pipeline 1:N Pipelin
 - Un Pipeline personalizado solo puede editarse y eliminarse lógicamente antes de su primera asociación con una Vacancy; a partir de entonces es permanentemente inmutable y no eliminable. Su editabilidad se deriva de ese historial de uso; no existe un campo `editable`.
 - Candidate y Vacancy vinculados por una Application deben pertenecer al mismo User.
 - `Application.current_stage_id` debe referenciar una PipelineStage del mismo Pipeline asignado a su Vacancy.
-- Solo puede existir una Application activa por combinación Candidate + Vacancy. Una Application eliminada lógicamente deja de participar en esa unicidad.
+- Solo puede existir una Application activa por combinación Candidate + Vacancy, garantizada mediante un índice único parcial sobre `(candidate_id, vacancy_id)` cuando `deleted_at IS NULL`. Una Application eliminada lógicamente deja de participar en esa unicidad.
 - La eliminación lógica solo aplica a Pipeline y Application en el MVP; PipelineStage no usa eliminación lógica. La eliminación de Candidate y Vacancy no forma parte del MVP.
 
 ---
@@ -224,6 +239,102 @@ Las relaciones son: User 1:N Candidate, Pipeline y Vacancy; Pipeline 1:N Pipelin
 ## 4. Especificación de la API
 
 > Si tu backend se comunica a través de API, describe los endpoints principales (máximo 3) en formato OpenAPI. Opcionalmente puedes añadir un ejemplo de petición y de respuesta para mayor claridad
+
+Los siguientes fragmentos usan el servidor base `/api` y referencian los schemas canónicos de `docs/openapi.yaml`.
+
+```yaml
+paths:
+  /auth/register:
+    post:
+      summary: Registrar un Recruiter
+      security: []
+      parameters:
+        - name: Origin
+          in: header
+          required: true
+          description: Debe coincidir con el mismo origen de la aplicación.
+          schema: { type: string }
+        - name: X-CSRF-Protection
+          in: header
+          required: true
+          schema: { type: string, const: '1' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'docs/openapi.yaml#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Cuenta creada; no inicia sesión.
+          content:
+            application/json:
+              schema:
+                $ref: 'docs/openapi.yaml#/components/schemas/RegistrationSuccess'
+
+  /vacancies:
+    post:
+      summary: Crear una vacante
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: Origin
+          in: header
+          required: true
+          description: Debe coincidir con el mismo origen de la aplicación.
+          schema: { type: string }
+        - name: X-CSRF-Protection
+          in: header
+          required: true
+          schema: { type: string, const: '1' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'docs/openapi.yaml#/components/schemas/VacancyCreateRequest'
+      responses:
+        '201':
+          description: Vacante creada en estado `DRAFT`.
+          content:
+            application/json:
+              schema:
+                $ref: 'docs/openapi.yaml#/components/schemas/VacancyDetail'
+
+  /applications/{id}:
+    patch:
+      summary: Mover una postulación a una stage
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: UUID de la Application.
+          schema: { type: string, format: uuid }
+        - name: Origin
+          in: header
+          required: true
+          description: Debe coincidir con el mismo origen de la aplicación.
+          schema: { type: string }
+        - name: X-CSRF-Protection
+          in: header
+          required: true
+          schema: { type: string, const: '1' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'docs/openapi.yaml#/components/schemas/ApplicationUpdateRequest'
+      responses:
+        '200':
+          description: Detalle actual de la postulación, incluso para un movimiento no-op válido.
+          content:
+            application/json:
+              schema:
+                $ref: 'docs/openapi.yaml#/components/schemas/ApplicationDetail'
+```
 
 ---
 
@@ -237,10 +348,10 @@ Como recruiter, quiero registrarme en RecruitLane, para acceder de forma segura 
 
 **Criterios de aceptación**
 
-- **AC1 — Registro correcto:** Given que no existe un Recruiter registrado con el correo ingresado, When una persona completa el registro con un correo y contraseña válidos, Then el sistema crea una nueva cuenta de Recruiter y la cuenta queda disponible para autenticarse.
+- **AC1 — Registro correcto:** Given que no existe un Recruiter registrado con el correo ingresado, When una persona completa el registro con nombre, apellido, correo y contraseña válidos, Then el sistema crea una nueva cuenta de Recruiter, sin iniciar sesión automáticamente, y la cuenta queda disponible para autenticarse.
 - **AC2 — Correo duplicado:** Given que existe un Recruiter registrado con un determinado correo, When una persona intenta registrarse utilizando el mismo correo, Then el sistema rechaza el registro y no crea una segunda cuenta.
 - **AC3 — Protección de contraseña:** Given que una persona completa correctamente el registro, When el sistema persiste las credenciales del Recruiter, Then la contraseña original no se almacena en texto plano.
-- **AC4 — Pipeline inicial:** Given que una persona completa correctamente el registro, When se crea su cuenta de Recruiter, Then el sistema crea automáticamente su pipeline predeterminado con las etapas Applied, Screening, Interview, Offer, Hired y Rejected en ese orden.
+- **AC4 — Pipeline inicial:** Given que una persona completa correctamente el registro, When se crea su cuenta de Recruiter, Then el sistema crea automáticamente el Pipeline predeterminado `Default` con las etapas Applied, Screening, Interview, Offer, Hired y Rejected en ese orden.
 
 **Historia de Usuario 2 — HU-02: Crear una vacante**
 
@@ -249,8 +360,8 @@ Como recruiter, quiero crear una vacante y asignarle un pipeline de selección, 
 **Criterios de aceptación**
 
 - **AC1 — Pipelines disponibles:** Given que el Recruiter está autenticado y dispone de pipelines propios, When inicia la creación de una vacante, Then puede seleccionar uno de sus pipelines disponibles y no puede seleccionar pipelines pertenecientes a otro Recruiter.
-- **AC2 — Creación correcta:** Given que el Recruiter está autenticado y seleccionó un pipeline propio, When crea una vacante con `title`, `company_name` y `description` válidos, Then el sistema crea la vacante asociada al pipeline seleccionado y queda inicialmente en estado `DRAFT`.
-- **AC3 — Campos requeridos:** Given que el Recruiter está creando una vacante, When omite `title`, `company_name` o `description`, Then el sistema rechaza la creación.
+- **AC2 — Creación correcta:** Given que el Recruiter está autenticado y seleccionó un pipeline propio, When crea una vacante con título, nombre de empresa y descripción válidos, Then el sistema crea la vacante asociada al pipeline seleccionado y queda inicialmente en estado `DRAFT`.
+- **AC3 — Campos requeridos:** Given que el Recruiter está creando una vacante, When omite el título, el nombre de empresa o la descripción, Then el sistema rechaza la creación.
 - **AC4 — Pipeline fijo:** Given que existe una vacante, When el Recruiter intenta sustituir su pipeline, Then el sistema rechaza la modificación.
 - **AC5 — Inmutabilidad del pipeline utilizado:** Given que un pipeline personalizado fue asociado a una vacante, When el Recruiter intenta modificar su nombre o sus etapas, Then el sistema rechaza la modificación.
 
@@ -263,7 +374,7 @@ Como recruiter, quiero mover una candidatura entre las etapas del pipeline de un
 - **AC1 — Movimiento válido:** Given que una Vacancy está en estado `OPEN` y contiene una Application activa, When el Recruiter mueve la Application a otra etapa del pipeline de la Vacancy, Then el sistema actualiza su etapa actual.
 - **AC2 — Movimiento no consecutivo:** Given que una Application pertenece a una Vacancy `OPEN`, When el Recruiter selecciona una etapa no consecutiva del mismo pipeline, Then el sistema permite el movimiento.
 - **AC3 — Etapa de otro pipeline:** Given que una Application pertenece a una Vacancy con un pipeline determinado, When el Recruiter intenta moverla a una etapa perteneciente a otro pipeline, Then el sistema rechaza el movimiento.
-- **AC4 — Vacante cerrada:** Given que una Vacancy está `FILLED` o `CANCELLED`, When el Recruiter intenta mover una de sus Applications, Then el sistema rechaza el movimiento y mantiene la Application en su etapa actual.
+- **AC4 — Vacante no abierta:** Given que una Application pertenece a una Vacancy que no está `OPEN`, When el Recruiter intenta moverla, Then el sistema rechaza el movimiento y mantiene la Application en su etapa actual.
 - **AC5 — Ownership:** Given que una Application pertenece a otro Recruiter, When el Recruiter autenticado intenta modificar su etapa, Then el sistema rechaza la operación y no expone ni modifica la Application.
 
 ---
@@ -272,11 +383,71 @@ Como recruiter, quiero mover una candidatura entre las etapas del pipeline de un
 
 > Documenta 3 de los tickets de trabajo principales del desarrollo, uno de backend, uno de frontend, y uno de bases de datos. Da todo el detalle requerido para desarrollar la tarea de inicio a fin teniendo en cuenta las buenas prácticas al respecto. 
 
-**Ticket 1**
+**Ticket 1 — Crear el esquema Prisma y la migración inicial de RecruitLane**
 
-**Ticket 2**
+**Tipo:** Base de datos
 
-**Ticket 3**
+**Objetivo**
+
+Definir la persistencia relacional inicial del MVP en Prisma y PostgreSQL para las seis entidades aprobadas.
+
+**Alcance**
+
+Modelar `User`, `Candidate`, `Pipeline`, `PipelineStage`, `Vacancy` y `Application`, con sus campos, relaciones y mapeos físicos aprobados. Incluir identificadores UUID v7, fechas `timestamptz`, claves foráneas con comportamiento equivalente a `onDelete: Restrict`, y `deletedAt` únicamente en Pipeline y Application. Incorporar las unicidades de User, Candidate y PipelineStage, los índices únicos parciales de Pipeline activo y Application activa, y los índices iniciales de Vacancy y Application definidos en el diseño.
+
+**Criterios de aceptación**
+
+- AC1 — El esquema representa las seis entidades y sus relaciones aprobadas, con los campos y límites físicos definidos para cada una.
+- AC2 — Las claves foráneas y las restricciones de unicidad protegen las relaciones y los datos propios de cada entidad sin eliminaciones en cascada.
+- AC3 — La migración inicial incorpora el borrado lógico de Pipeline y Application y los índices únicos parciales sobre `(user_id, name)` y `(candidate_id, vacancy_id)` para los registros activos.
+
+**Dependencias**
+
+Decisión de arquitectura aprobada en la tarea 1.1 y modelo físico definido en `design.md`.
+
+**Ticket 2 — Implementar el ciclo de vida de Vacancy**
+
+**Tipo:** Backend
+
+**Objetivo**
+
+Permitir la actualización del estado de una Vacancy propia conforme al ciclo de vida aprobado.
+
+**Alcance**
+
+Implementar la lógica de actualización de `status` para una Vacancy propia. Debe admitir únicamente los estados `DRAFT`, `OPEN`, `FILLED` y `CANCELLED`, aplicar las transiciones permitidas y conservar el resultado actual cuando se solicita el mismo estado.
+
+**Criterios de aceptación**
+
+- AC1 — Se permiten exclusivamente las transiciones `DRAFT` a `OPEN`, `OPEN` a `FILLED`, `OPEN` a `CANCELLED`, `FILLED` a `OPEN` y `CANCELLED` a `OPEN`.
+- AC2 — Cualquier transición distinta de las permitidas se rechaza.
+- AC3 — Solicitar el estado actual es un no-op exitoso y conserva la representación actual de la Vacancy.
+
+**Dependencias**
+
+Estructura de backend y persistencia inicial (tarea 1.3), creación de Vacancies (tarea 4.1) y comprobación transversal de propiedad del Recruiter autenticado (tarea 2.3).
+
+**Ticket 3 — Implementar el formulario de creación de Vacancy con selección de Pipeline propio**
+
+**Tipo:** Frontend
+
+**Objetivo**
+
+Ofrecer al Recruiter un formulario para crear una Vacancy con los datos requeridos y un Pipeline propio disponible.
+
+**Alcance**
+
+Construir el formulario con título, nombre de empresa, descripción y selección de Pipeline. El formulario debe mostrar únicamente Pipelines propios disponibles, aplicar la validación de los campos conforme al contrato, y enviar la creación al contrato `POST /vacancies`. No define librería CSS, layout ni patrón visual.
+
+**Criterios de aceptación**
+
+- AC1 — El formulario permite ingresar título, nombre de empresa y descripción, y seleccionar un Pipeline propio disponible.
+- AC2 — La ausencia de cualquiera de los campos requeridos o un valor que no cumple las reglas definidas por el contrato se informa en el formulario y no produce un envío válido.
+- AC3 — Con datos válidos y un Pipeline propio seleccionado, el formulario envía la creación de la Vacancy y refleja el resultado de la operación.
+
+**Dependencias**
+
+Estructura de frontend y autenticación disponibles, consulta de Pipelines propios y contrato `POST /vacancies`; la creación de Vacancy y el aislamiento de propiedad se respaldan en las tareas 4.1 y 2.3.
 
 ---
 
