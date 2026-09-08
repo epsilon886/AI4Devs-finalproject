@@ -1,6 +1,12 @@
 # Codex local configuration
 .codex/
 
+# Workspace artifacts
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
 # Environment variables / secrets
 .env
 .env.*

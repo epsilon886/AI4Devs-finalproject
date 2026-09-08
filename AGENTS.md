@@ -181,18 +181,16 @@ When architecture, setup commands, project structure, testing commands, or devel
 
 ## Testing and Validation
 
-La estrategia de pruebas aprobada está documentada en el `design.md` vigente, pero aún no hay tooling ni comandos de prueba implementados en el repositorio.
+La estrategia de pruebas aprobada está documentada en el `design.md` vigente. El bootstrap inicial dispone de los siguientes comandos:
 
-Once implementation tooling is introduced, document here the exact commands for:
+- Instalación de dependencias: `pnpm install` desde la raíz del workspace.
+- Desarrollo local: `pnpm --filter front dev` y `pnpm --filter back start:dev`.
+- Formateo: `pnpm --filter back format`.
+- Lint: `pnpm --filter front lint` y `pnpm --filter back lint`.
+- Comprobación de tipos y build: `pnpm --filter front build` y `pnpm --filter back build`.
+- Pruebas unitarias backend: `pnpm --filter back test`.
+- Pruebas E2E backend: `pnpm --filter back test:e2e`.
 
-- dependency setup;
-- local development;
-- formatting;
-- linting;
-- type checking, when applicable;
-- unit tests;
-- integration tests;
-- end-to-end tests;
-- production build.
+No hay todavía tooling de pruebas unitarias, componentes o E2E para frontend, ni pruebas de integración con PostgreSQL. Cuando se incorporen, documentar aquí sus comandos exactos antes de considerarlas parte de la suite.
 
 Run the narrowest relevant validation during development and the complete documented validation suite before considering a material change finished.
