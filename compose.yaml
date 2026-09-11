@@ -33,5 +33,40 @@ services:
       - back
       - prisma:migrate:deploy
 
+  back:
+    build:
+      context: .
+      dockerfile: back/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      CHOKIDAR_USEPOLLING: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    command:
+      - pnpm
+      - --filter
+      - back
+      - exec
+      - nest
+      - start
+      - --watch
+      - --no-shell
+    volumes:
+      - ./back/src:/workspace/back/src
+
+  front:
+    build:
+      context: .
+      dockerfile: front/Dockerfile
+    depends_on:
+      back:
+        condition: service_started
+    ports:
+      - "127.0.0.1:5173:5173"
+    volumes:
+      - ./front/src:/workspace/front/src
+      - ./front/index.html:/workspace/front/index.html
+
 volumes:
   postgres_data:

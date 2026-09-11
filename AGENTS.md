@@ -193,7 +193,9 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 - Generación del cliente Prisma: `pnpm --filter back prisma:generate`.
 - Creación y aplicación de migraciones Prisma en desarrollo: `pnpm --filter back prisma:migrate:dev -- --name <nombre>`.
 - Aplicación de migraciones Prisma versionadas: `pnpm --filter back prisma:migrate:deploy`.
-- PostgreSQL y migraciones Docker (requiere `.env` local): `docker compose up -d --wait postgres`.
+- Arranque completo Docker de desarrollo, incluidas migraciones (requiere `.env` local): `docker compose up -d --build`.
+- Detención del stack Docker de desarrollo conservando el volumen de PostgreSQL: `docker compose down`.
+- Logs de los servicios de desarrollo con hot reload: `docker compose logs -f front back`.
 - Creación explícita de migración en Docker: `docker compose run --rm --no-deps --build -v "$PWD/back/prisma:/workspace/back/prisma" --entrypoint pnpm migrate --filter back run prisma:migrate:dev -- --name <nombre> --create-only`.
 - Aplicación de migraciones revisadas en Docker: `docker compose run --rm --no-deps --build migrate`.
 - Estado de migraciones en Docker: `docker compose run --rm --no-deps --entrypoint pnpm migrate --filter back exec prisma migrate status`.

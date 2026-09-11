@@ -2,7 +2,7 @@
 
 - [x] 1.1 Decisión de arquitectura aprobada y documentada en `design.md`.
 - [ ] 1.2 Implementar la normalización y validación de correos aprobadas, incluida la unicidad de Candidate sobre el valor normalizado.
-- [ ] 1.3 Preparar la estructura de la aplicación y la persistencia elegidas en la decisión de arquitectura aprobada.
+- [x] 1.3 Preparar la estructura de la aplicación y la persistencia elegidas en la decisión de arquitectura aprobada.
 
 ## 2. Identidad y aislamiento
 
