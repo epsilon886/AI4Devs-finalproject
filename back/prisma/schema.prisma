@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum VacancyStatus {
+  DRAFT
+  OPEN
+  FILLED
+  CANCELLED
+
+  @@map("vacancy_status")
+}
+
+model User {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  firstName    String    @map("first_name") @db.VarChar(100)
+  lastName     String    @map("last_name") @db.VarChar(100)
+  email        String    @unique @db.VarChar(200)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  candidates Candidate[]
+  pipelines  Pipeline[]
+  vacancies  Vacancy[]
+
+  @@map("users")
+}
+
+model Candidate {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  firstName String        @map("first_name") @db.VarChar(100)
+  lastName  String        @map("last_name") @db.VarChar(100)
+  email     String        @db.VarChar(200)
+  phone     String?       @db.VarChar(30)
+  createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  applications Application[]
+
+  @@unique([userId, email])
+  @@map("candidates")
+}
+
+model Pipeline {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  userId    String          @map("user_id") @db.Uuid
+  name      String          @db.VarChar(100)
+  isDefault Boolean         @map("is_default")
+  deletedAt DateTime?       @map("deleted_at") @db.Timestamptz(6)
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  stages    PipelineStage[]
+  vacancies Vacancy[]
+
+  @@map("pipelines")
+}
+
+model PipelineStage {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  pipelineId String        @map("pipeline_id") @db.Uuid
+  name       String        @db.VarChar(100)
+  position   Int
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  applications Application[]
+
+  @@unique([pipelineId, name])
+  @@unique([pipelineId, position])
+  @@map("pipeline_stages")
+}
+
+model Vacancy {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  userId      String        @map("user_id") @db.Uuid
+  pipelineId  String        @map("pipeline_id") @db.Uuid
+  title       String        @db.VarChar(200)
+  companyName String        @map("company_name") @db.VarChar(200)
+  description String        @db.VarChar(1500)
+  status      VacancyStatus
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  pipeline     Pipeline      @relation(fields: [pipelineId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  applications Application[]
+
+  @@index([userId, status])
+  @@map("vacancies")
+}
+
+model Application {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  vacancyId      String        @map("vacancy_id") @db.Uuid
+  candidateId    String        @map("candidate_id") @db.Uuid
+  currentStageId String        @map("current_stage_id") @db.Uuid
+  deletedAt      DateTime?     @map("deleted_at") @db.Timestamptz(6)
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  vacancy      Vacancy       @relation(fields: [vacancyId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  candidate    Candidate     @relation(fields: [candidateId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  currentStage PipelineStage @relation(fields: [currentStageId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([vacancyId, currentStageId])
+  @@map("applications")
+}
