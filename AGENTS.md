@@ -190,6 +190,13 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 - Comprobación de tipos y build: `pnpm --filter front build` y `pnpm --filter back build`.
 - Pruebas unitarias backend: `pnpm --filter back test`.
 - Pruebas E2E backend: `pnpm --filter back test:e2e`.
+- Generación del cliente Prisma: `pnpm --filter back prisma:generate`.
+- Creación y aplicación de migraciones Prisma en desarrollo: `pnpm --filter back prisma:migrate:dev -- --name <nombre>`.
+- Aplicación de migraciones Prisma versionadas: `pnpm --filter back prisma:migrate:deploy`.
+- PostgreSQL y migraciones Docker (requiere `.env` local): `docker compose up -d --wait postgres`.
+- Creación explícita de migración en Docker: `docker compose run --rm --no-deps --build -v "$PWD/back/prisma:/workspace/back/prisma" --entrypoint pnpm migrate --filter back run prisma:migrate:dev -- --name <nombre> --create-only`.
+- Aplicación de migraciones revisadas en Docker: `docker compose run --rm --no-deps --build migrate`.
+- Estado de migraciones en Docker: `docker compose run --rm --no-deps --entrypoint pnpm migrate --filter back exec prisma migrate status`.
 
 No hay todavía tooling de pruebas unitarias, componentes o E2E para frontend, ni pruebas de integración con PostgreSQL. Cuando se incorporen, documentar aquí sus comandos exactos antes de considerarlas parte de la suite.
 
