@@ -7,7 +7,7 @@
 ## 2. Identidad y aislamiento
 
 - [x] 2.1 Implementar el registro de Recruiters con correo globalmente único y sin almacenar contraseñas en texto plano.
-- [ ] 2.2 Implementar el inicio y cierre de sesión de Recruiters con el mecanismo de autenticación aprobado, CSRF/Origin y rate limiting.
+- [x] 2.2 Implementar el inicio y cierre de sesión de Recruiters con el mecanismo de autenticación aprobado, CSRF/Origin y rate limiting.
 - [ ] 2.3 Aplicar la comprobación transversal de propiedad del Recruiter autenticado a cada operación sobre candidatos, pipelines, vacantes y postulaciones.
 - [ ] 2.4 Verificar que ningún flujo permita combinar recursos de Recruiters distintos.
 

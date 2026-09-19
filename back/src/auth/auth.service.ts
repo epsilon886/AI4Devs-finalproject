@@ -3,11 +3,15 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import argon2 from 'argon2';
 import { normalizeEmail } from '../common/normalization/normalize-email';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterRecruiterDto } from './dto/register-recruiter.dto';
+import { LoginRecruiterDto } from './dto/login-recruiter.dto';
+import { AuthRateLimitService } from './auth-rate-limit.service';
 
 const DEFAULT_PIPELINE_STAGES = [
   { name: 'Applied', position: 1 },
@@ -22,7 +26,49 @@ const DEFAULT_PIPELINE_STAGES = [
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly jwtService: JwtService,
+    private readonly rateLimitService: AuthRateLimitService,
+  ) {}
+
+  async login(
+    loginRecruiterDto: LoginRecruiterDto,
+    ip: string,
+  ): Promise<{
+    user: PublicUser;
+    token: string;
+  }> {
+    const email = normalizeEmail(loginRecruiterDto.email);
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (
+      !user ||
+      !(await argon2.verify(user.passwordHash, loginRecruiterDto.password))
+    ) {
+      this.rateLimitService.recordLoginFailure(ip, email);
+      throw invalidCredentials();
+    }
+
+    this.rateLimitService.clearLoginFailures(ip, email);
+    const token = await this.jwtService.signAsync({ sub: user.id });
+
+    return { user: publicUser(user), token };
+  }
+
+  async me(userId: string): Promise<PublicUser> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    if (!user) {
+      throw new UnauthorizedException({
+        statusCode: 401,
+        code: 'UNAUTHORIZED',
+        message: 'Authentication required',
+      });
+    }
+
+    return publicUser(user);
+  }
 
   async register(registerRecruiterDto: RegisterRecruiterDto): Promise<void> {
     try {
@@ -76,4 +122,28 @@ export class AuthService {
       error.code === 'P2002'
     );
   }
+}
+
+export interface PublicUser {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+function publicUser(user: PublicUser): PublicUser {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+  };
+}
+
+function invalidCredentials(): UnauthorizedException {
+  return new UnauthorizedException({
+    statusCode: 401,
+    code: 'INVALID_CREDENTIALS',
+    message: 'Invalid email or password',
+  });
 }

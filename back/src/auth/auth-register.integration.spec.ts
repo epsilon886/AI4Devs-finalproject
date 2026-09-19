@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { ConflictException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
 import { PrismaClient } from '@prisma/client';
 import {
   PostgreSqlContainer,
@@ -8,6 +9,7 @@ import {
 } from '@testcontainers/postgresql';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuthRateLimitService } from './auth-rate-limit.service';
 
 const DEFAULT_STAGES = [
   { name: 'Applied', position: 1 },
@@ -100,5 +102,37 @@ describe('recruiter registration integration', () => {
     expect(await prisma.user.count()).toBe(1);
     expect(await prisma.pipeline.count()).toBe(1);
     expect(await prisma.pipelineStage.count()).toBe(6);
+  });
+
+  it('authenticates a persisted normalized user with real Argon2 and JWT', async () => {
+    const jwtService = new JwtService({ secret: 'integration-jwt-secret' });
+    const service = new AuthService(
+      prisma as PrismaService,
+      jwtService,
+      new AuthRateLimitService(),
+    );
+
+    await service.register({
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: '  ADA@Example.COM ',
+      password: 'a secure password',
+    });
+
+    const login = await service.login(
+      { email: 'ada@example.com', password: 'a secure password' },
+      '127.0.0.1',
+    );
+
+    await expect(jwtService.verifyAsync(login.token)).resolves.toMatchObject({
+      sub: login.user.id,
+    });
+    expect(login.user).toEqual({
+      id: login.user.id,
+      firstName: 'Ada',
+      lastName: 'Lovelace',
+      email: 'ada@example.com',
+    });
+    expect(login.user).not.toHaveProperty('passwordHash');
   });
 });

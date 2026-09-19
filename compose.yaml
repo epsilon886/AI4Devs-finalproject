@@ -39,6 +39,8 @@ services:
       dockerfile: back/Dockerfile
     environment:
       DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      NODE_ENV: ${NODE_ENV:?NODE_ENV must be set}
       CHOKIDAR_USEPOLLING: "true"
     depends_on:
       migrate:

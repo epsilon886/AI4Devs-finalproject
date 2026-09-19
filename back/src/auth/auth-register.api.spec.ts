@@ -1,4 +1,9 @@
-import { ConflictException, INestApplication, Logger } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  INestApplication,
+  Logger,
+} from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../app.module';
@@ -6,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createValidationPipe } from '../common/validation/create-validation-pipe';
 import { AuthService } from './auth.service';
 import { ApiExceptionFilter } from '../common/filters/api-exception.filter';
+import { AuthRateLimitService } from './auth-rate-limit.service';
 
 const validRegistration = {
   firstName: 'Ada',
@@ -16,9 +22,13 @@ const validRegistration = {
 
 describe('POST /api/auth/register', () => {
   let app: INestApplication;
+  let originalJwtSecret: string | undefined;
   const authService = { register: jest.fn().mockResolvedValue(undefined) };
+  const rateLimitService = { recordRegistration: jest.fn() };
 
   beforeAll(async () => {
+    originalJwtSecret = process.env.JWT_SECRET;
+    process.env.JWT_SECRET = 'test-jwt-secret';
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     })
@@ -26,6 +36,8 @@ describe('POST /api/auth/register', () => {
       .useValue({})
       .overrideProvider(AuthService)
       .useValue(authService)
+      .overrideProvider(AuthRateLimitService)
+      .useValue(rateLimitService)
       .compile();
 
     app = moduleRef.createNestApplication();
@@ -37,11 +49,11 @@ describe('POST /api/auth/register', () => {
 
   afterAll(async () => {
     await app.close();
+    restoreEnvironment('JWT_SECRET', originalJwtSecret);
   });
 
   it('creates an account at the global API prefix with the exact public response', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/api/auth/register')
+    const response = await protectedPost(app, '/api/auth/register')
       .send(validRegistration)
       .expect(201)
       .expect({ message: 'Account created successfully' });
@@ -78,8 +90,7 @@ describe('POST /api/auth/register', () => {
     ],
     ['an additional property', { ...validRegistration, role: 'admin' }],
   ])('returns the validation envelope for %s', async (_description, body) => {
-    const response = await request(app.getHttpServer())
-      .post('/api/auth/register')
+    const response = await protectedPost(app, '/api/auth/register')
       .send(body)
       .expect(400);
 
@@ -93,8 +104,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('accepts boundary-length names after trimming while preserving internal whitespace', async () => {
-    await request(app.getHttpServer())
-      .post('/api/auth/register')
+    await protectedPost(app, '/api/auth/register')
       .send({
         ...validRegistration,
         firstName: `  ${'A'.repeat(50)} ${'B'.repeat(49)}  `,
@@ -104,8 +114,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('rejects non-JSON media types with the approved envelope', async () => {
-    await request(app.getHttpServer())
-      .post('/api/auth/register')
+    await protectedPost(app, '/api/auth/register')
       .set('Content-Type', 'text/plain')
       .send(JSON.stringify(validRegistration))
       .expect(415)
@@ -117,8 +126,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('accepts application/json with a charset parameter', async () => {
-    await request(app.getHttpServer())
-      .post('/api/auth/register')
+    await protectedPost(app, '/api/auth/register')
       .set('Content-Type', 'application/json; charset=utf-8')
       .send(validRegistration)
       .expect(201)
@@ -126,8 +134,7 @@ describe('POST /api/auth/register', () => {
   });
 
   it('does not expose the registration route without the API prefix', async () => {
-    await request(app.getHttpServer())
-      .post('/auth/register')
+    await protectedPost(app, '/auth/register')
       .send(validRegistration)
       .expect(404);
   });
@@ -141,8 +148,7 @@ describe('POST /api/auth/register', () => {
       }),
     );
 
-    await request(app.getHttpServer())
-      .post('/api/auth/register')
+    await protectedPost(app, '/api/auth/register')
       .send(validRegistration)
       .expect(409)
       .expect({
@@ -159,8 +165,7 @@ describe('POST /api/auth/register', () => {
 
     authService.register.mockRejectedValueOnce(new Error('database internals'));
 
-    await request(app.getHttpServer())
-      .post('/api/auth/register')
+    await protectedPost(app, '/api/auth/register')
       .send(validRegistration)
       .expect(500)
       .expect({
@@ -173,4 +178,60 @@ describe('POST /api/auth/register', () => {
 
     loggerSpy.mockRestore();
   });
+
+  it('requires the Origin and CSRF protection even though registration is public', async () => {
+    rateLimitService.recordRegistration.mockClear();
+    await request(app.getHttpServer())
+      .post('/api/auth/register')
+      .set('Host', 'recruitlane.test')
+      .send(validRegistration)
+      .expect(403)
+      .expect({
+        statusCode: 403,
+        code: 'UNAUTHORIZED_REQUEST',
+        message: 'Request could not be verified',
+      });
+
+    expect(rateLimitService.recordRegistration).not.toHaveBeenCalled();
+  });
+
+  it('returns the approved 429 envelope without Retry-After when the guard rejects', async () => {
+    rateLimitService.recordRegistration.mockImplementationOnce(() => {
+      throw new HttpException(
+        {
+          statusCode: 429,
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests. Please try again later.',
+        },
+        429,
+      );
+    });
+
+    const response = await protectedPost(app, '/api/auth/register')
+      .send(validRegistration)
+      .expect(429)
+      .expect({
+        statusCode: 429,
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Too many requests. Please try again later.',
+      });
+
+    expect(response.headers['retry-after']).toBeUndefined();
+  });
 });
+
+function protectedPost(app: INestApplication, path: string) {
+  return request(app.getHttpServer())
+    .post(path)
+    .set('Host', 'recruitlane.test')
+    .set('Origin', 'http://recruitlane.test')
+    .set('X-CSRF-Protection', '1');
+}
+
+function restoreEnvironment(name: string, value: string | undefined): void {
+  if (value === undefined) {
+    delete process.env[name];
+  } else {
+    process.env[name] = value;
+  }
+}

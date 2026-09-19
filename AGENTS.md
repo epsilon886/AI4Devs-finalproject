@@ -12,7 +12,7 @@ Current top-level structure:
 - `.agents/skills/` contains repository-local agent skills, including the OpenSpec integration.
 - `AGENTS.md` defines persistent instructions for AI agents working in this repository.
 
-La arquitectura, la estructura prevista y la estrategia de pruebas aprobadas se documentan en el `design.md` vigente. El repositorio todavía no contiene código de aplicación, directorios de pruebas ni comandos ejecutables de ese stack.
+La arquitectura, la estructura prevista y la estrategia de pruebas aprobadas se documentan en el `design.md` vigente. El backend contiene una aplicación NestJS y pruebas ejecutables, incluidas pruebas de integración con PostgreSQL real mediante Testcontainers.
 
 Do not introduce new top-level directories or architectural conventions without a concrete need.
 
@@ -185,10 +185,10 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 
 - Instalación de dependencias: `pnpm install` desde la raíz del workspace.
 - Desarrollo local: `pnpm --filter front dev` y `pnpm --filter back start:dev`.
-- Formateo: `pnpm --filter back format`.
+- Formateo: `pnpm --filter back format` (actualmente termina con error porque no existe `test/**/*.ts`).
 - Lint: `pnpm --filter front lint` y `pnpm --filter back lint`.
 - Comprobación de tipos y build: `pnpm --filter front build` y `pnpm --filter back build`.
-- Pruebas unitarias backend: `pnpm --filter back test`.
+- Pruebas backend unitarias, API e integración con PostgreSQL real mediante Testcontainers: `pnpm --filter back test`.
 - Pruebas E2E backend: `pnpm --filter back test:e2e`.
 - Generación del cliente Prisma: `pnpm --filter back prisma:generate`.
 - Creación y aplicación de migraciones Prisma en desarrollo: `pnpm --filter back prisma:migrate:dev -- --name <nombre>`.
@@ -200,6 +200,6 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 - Aplicación de migraciones revisadas en Docker: `docker compose run --rm --no-deps --build migrate`.
 - Estado de migraciones en Docker: `docker compose run --rm --no-deps --entrypoint pnpm migrate --filter back exec prisma migrate status`.
 
-No hay todavía tooling de pruebas unitarias, componentes o E2E para frontend, ni pruebas de integración con PostgreSQL. Cuando se incorporen, documentar aquí sus comandos exactos antes de considerarlas parte de la suite.
+No hay todavía tooling de pruebas unitarias, componentes o E2E para frontend. Cuando se incorporen, documentar aquí sus comandos exactos antes de considerarlas parte de la suite.
 
 Run the narrowest relevant validation during development and the complete documented validation suite before considering a material change finished.
