@@ -1,7 +1,7 @@
 ## 1. Prerrequisitos de implementación
 
 - [x] 1.1 Decisión de arquitectura aprobada y documentada en `design.md`.
-- [ ] 1.2 Implementar la normalización y validación de correos aprobadas, incluida la unicidad de Candidate sobre el valor normalizado.
+- [x] 1.2 Implementar la normalización y validación de correos aprobadas, incluida la unicidad de Candidate sobre el valor normalizado.
 - [x] 1.3 Preparar la estructura de la aplicación y la persistencia elegidas en la decisión de arquitectura aprobada.
 
 ## 2. Identidad y aislamiento
@@ -13,7 +13,7 @@
 
 ## 3. Candidatos y pipelines
 
-- [ ] 3.1 Implementar la creación, consulta y actualización de candidatos propios con sus cuatro campos permitidos, `phone` nullable en la representación pública y unicidad de correo normalizado por Recruiter.
+- [x] 3.1 Implementar la creación, consulta y actualización de candidatos propios con sus cuatro campos permitidos, `phone` nullable en la representación pública y unicidad de correo normalizado por Recruiter.
 - [ ] 3.2 Omitir explícitamente la eliminación de candidatos y los atributos de candidato fuera de alcance.
 - [ ] 3.3 Crear automáticamente el pipeline predeterminado `Default` con las seis etapas y hacerlo no editable ni eliminable.
 - [ ] 3.4 Implementar pipelines personalizados con nombre único entre activos por Recruiter, de 3 a 10 etapas con posiciones completas y nombres normalizados no duplicados.

@@ -91,7 +91,7 @@ Sus beneficios principales son un desarrollo y despliegue más simples, una pers
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
-Actualmente el repositorio contiene los artefactos de documentación y OpenSpec, pero todavía no incluye una aplicación implementada ni los directorios `front/` y `back/`. Para la implementación V1, la estructura aprobada será un `pnpm workspace` con esta organización de alto nivel:
+Actualmente el repositorio incluye los artefactos de documentación y OpenSpec, además de los directorios `front/` y `back/` del `pnpm workspace` vigente, con esta organización de alto nivel:
 
 ```text
 front/    # SPA de React
