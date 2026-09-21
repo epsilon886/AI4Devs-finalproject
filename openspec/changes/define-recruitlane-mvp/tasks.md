@@ -14,10 +14,10 @@
 ## 3. Candidatos y pipelines
 
 - [x] 3.1 Implementar la creación, consulta y actualización de candidatos propios con sus cuatro campos permitidos, `phone` nullable en la representación pública y unicidad de correo normalizado por Recruiter.
-- [ ] 3.2 Omitir explícitamente la eliminación de candidatos y los atributos de candidato fuera de alcance.
-- [ ] 3.3 Crear automáticamente el pipeline predeterminado `Default` con las seis etapas y hacerlo no editable ni eliminable.
-- [ ] 3.4 Implementar pipelines personalizados con nombre único entre activos por Recruiter, de 3 a 10 etapas con posiciones completas y nombres normalizados no duplicados.
-- [ ] 3.5 Aplicar las reglas de edición, sincronización atómica de stages, asociación histórica, inmutabilidad y eliminación lógica de pipelines personalizados, excluyéndolos de los flujos normales tras su eliminación y sin recuperación.
+- [x] 3.2 Omitir explícitamente la eliminación de candidatos y los atributos de candidato fuera de alcance.
+- [x] 3.3 Crear automáticamente el pipeline predeterminado `Default` con las seis etapas y hacerlo no editable ni eliminable.
+- [x] 3.4 Implementar pipelines personalizados con nombre único entre activos por Recruiter, de 3 a 10 etapas con posiciones completas y nombres normalizados no duplicados.
+- [x] 3.5 Aplicar las reglas de edición, sincronización atómica de stages, asociación histórica, inmutabilidad y eliminación lógica de pipelines personalizados, excluyéndolos de los flujos normales tras su eliminación y sin recuperación.
 
 ## 4. Vacantes y postulaciones
 

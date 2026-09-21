@@ -13,8 +13,8 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JsonContentTypeGuard } from '../common/guards/json-content-type.guard';
-import { CandidateIdParamDto } from './dto/candidate-id-param.dto';
-import { CandidatesPaginationDto } from './dto/candidates-pagination.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
+import { ResourceIdParamDto } from '../common/dto/resource-id-param.dto';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
 import { CandidatesService } from './candidates.service';
@@ -36,7 +36,7 @@ export class CandidatesController {
   @Get()
   findAll(
     @Req() request: Request & { user: { sub: string } },
-    @Query() pagination: CandidatesPaginationDto,
+    @Query() pagination: PaginationQueryDto,
   ) {
     return this.candidatesService.findAll(request.user.sub, pagination);
   }
@@ -44,7 +44,7 @@ export class CandidatesController {
   @Get(':id')
   findOne(
     @Req() request: Request & { user: { sub: string } },
-    @Param() { id }: CandidateIdParamDto,
+    @Param() { id }: ResourceIdParamDto,
   ) {
     return this.candidatesService.findOne(request.user.sub, id);
   }
@@ -53,7 +53,7 @@ export class CandidatesController {
   @UseGuards(JsonContentTypeGuard)
   update(
     @Req() request: Request & { user: { sub: string } },
-    @Param() { id }: CandidateIdParamDto,
+    @Param() { id }: ResourceIdParamDto,
     @Body() updateCandidateDto: UpdateCandidateDto,
   ) {
     if (

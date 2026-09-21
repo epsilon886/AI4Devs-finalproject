@@ -6,7 +6,7 @@ import {
 import { Candidate } from '@prisma/client';
 import { normalizeEmail } from '../common/normalization/normalize-email';
 import { PrismaService } from '../prisma/prisma.service';
-import { CandidatesPaginationDto } from './dto/candidates-pagination.dto';
+import { PaginationQueryDto } from '../common/dto/pagination-query.dto';
 import { CreateCandidateDto } from './dto/create-candidate.dto';
 import { UpdateCandidateDto } from './dto/update-candidate.dto';
 
@@ -39,7 +39,7 @@ export class CandidatesService {
 
   async findAll(
     userId: string,
-    { page, pageSize }: CandidatesPaginationDto,
+    { page, pageSize }: PaginationQueryDto,
   ): Promise<CandidatePage> {
     const [totalItems, candidates] = await Promise.all([
       this.prisma.candidate.count({ where: { userId } }),

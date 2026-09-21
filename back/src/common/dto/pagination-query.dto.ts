@@ -9,7 +9,7 @@ function canonicalPositiveInteger({ value }: { value: unknown }): unknown {
   return Number(value);
 }
 
-export class CandidatesPaginationDto {
+export class PaginationQueryDto {
   @Transform(canonicalPositiveInteger)
   @IsInt()
   @Min(1)
