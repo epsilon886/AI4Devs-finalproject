@@ -23,10 +23,10 @@
 
 - [x] 4.1 Implementar vacantes propias con los campos requeridos, estado inicial automático `DRAFT`, un único pipeline propio inmutable y sin entidades de compañía u organización.
 - [x] 4.2 Implementar los estados `DRAFT`, `OPEN`, `FILLED` y `CANCELLED`, las transiciones permitidas y el no-op de estado idéntico.
-- [ ] 4.3 Restringir la creación, el movimiento de etapas y la eliminación de Applications a vacantes `OPEN`, manteniendo las Applications de las demás vacantes solo consultables.
-- [ ] 4.4 Implementar la creación de Applications para candidato y vacante propios, asignando la primera etapa del pipeline de la vacante.
-- [ ] 4.5 Aplicar la unicidad de Application activa por Candidate + Vacancy y la eliminación lógica en vacantes `OPEN`, excluyéndola de los flujos normales, sin recuperación y habilitando una nueva Application activa posterior.
-- [ ] 4.6 Implementar movimientos libres de Applications solo hacia etapas del pipeline de su propia Vacancy, incluido el no-op hacia la etapa actual, sin reglas de adyacencia ni terminalidad.
+- [x] 4.3 Restringir la creación, el movimiento de etapas y la eliminación de Applications a vacantes `OPEN`, manteniendo las Applications de las demás vacantes solo consultables.
+- [x] 4.4 Implementar la creación de Applications para candidato y vacante propios, asignando la primera etapa del pipeline de la vacante.
+- [x] 4.5 Aplicar la unicidad de Application activa por Candidate + Vacancy y la eliminación lógica en vacantes `OPEN`, excluyéndola de los flujos normales, sin recuperación y habilitando una nueva Application activa posterior.
+- [x] 4.6 Implementar movimientos libres de Applications solo hacia etapas del pipeline de su propia Vacancy, incluido el no-op hacia la etapa actual, sin reglas de adyacencia ni terminalidad.
 
 ## 5. Validación del comportamiento
 
