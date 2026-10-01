@@ -8,8 +8,8 @@
 
 - [x] 2.1 Implementar el registro de Recruiters con correo globalmente único y sin almacenar contraseñas en texto plano.
 - [x] 2.2 Implementar el inicio y cierre de sesión de Recruiters con el mecanismo de autenticación aprobado, CSRF/Origin y rate limiting.
-- [ ] 2.3 Aplicar la comprobación transversal de propiedad del Recruiter autenticado a cada operación sobre candidatos, pipelines, vacantes y postulaciones.
-- [ ] 2.4 Verificar que ningún flujo permita combinar recursos de Recruiters distintos.
+- [x] 2.3 Aplicar la comprobación transversal de propiedad del Recruiter autenticado a cada operación sobre candidatos, pipelines, vacantes y postulaciones.
+- [x] 2.4 Verificar que ningún flujo permita combinar recursos de Recruiters distintos.
 
 ## 3. Candidatos y pipelines
 
@@ -30,8 +30,8 @@
 
 ## 5. Validación del comportamiento
 
-- [ ] 5.1 Añadir pruebas de autenticación, CSRF/Origin, rate limiting, unicidad de correos y aislamiento entre Recruiters.
-- [ ] 5.2 Añadir pruebas de validación, unicidad, posiciones y sincronización atómica de pipelines, incluida la eliminación lógica permitida y rechazada, su ausencia de flujos normales y la falta de recuperación.
-- [ ] 5.3 Añadir pruebas del estado inicial `DRAFT`, del ciclo de vida de vacantes, incluido el no-op de estado idéntico, y de sus restricciones para crear, mover y eliminar Applications.
-- [ ] 5.4 Añadir pruebas de creación, unicidad activa, eliminación lógica en vacantes `OPEN`, ausencia de flujos normales y movimientos de Applications, incluido el no-op hacia la etapa actual.
+- [x] 5.1 Añadir pruebas de autenticación, CSRF/Origin, rate limiting, unicidad de correos y aislamiento entre Recruiters.
+- [x] 5.2 Añadir pruebas de validación, unicidad, posiciones y sincronización atómica de pipelines, incluida la eliminación lógica permitida y rechazada, su ausencia de flujos normales y la falta de recuperación.
+- [x] 5.3 Añadir pruebas del estado inicial `DRAFT`, del ciclo de vida de vacantes, incluido el no-op de estado idéntico, y de sus restricciones para crear, mover y eliminar Applications.
+- [x] 5.4 Añadir pruebas de creación, unicidad activa, eliminación lógica en vacantes `OPEN`, ausencia de flujos normales y movimientos de Applications, incluido el no-op hacia la etapa actual.
 - [ ] 5.5 Ejecutar la suite de validación definida por el stack aprobado y comprobar que no se incorporaron capacidades excluidas del MVP.
