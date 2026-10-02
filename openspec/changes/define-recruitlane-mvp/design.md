@@ -2,7 +2,7 @@
 
 RecruitLane es un MVP individual para Recruiters. La motivación y el alcance funcional están en `proposal.md`; los comportamientos obligatorios están en los seis delta specs. Este documento consolida las decisiones técnicas ya aprobadas para implementar esas reglas sin rediseñar el producto.
 
-`User` es la entidad técnica del único actor funcional denominado *Recruiter* en los requisitos. No introduce roles, organizaciones, espacios compartidos ni colaboración. El proyecto parte sin aplicación implementada y se organizará como un monorepositorio pnpm con `front/`, `back/`, `openspec/`, `.agents/`, `compose.yaml`, `pnpm-workspace.yaml`, `package.json` raíz, `pnpm-lock.yaml`, `AGENTS.md`, `readme.md` y `prompts.md`.
+`User` es la entidad técnica del único actor funcional denominado *Recruiter* en los requisitos. No introduce roles, organizaciones, espacios compartidos ni colaboración. El backend y el contrato HTTP ya están materializados; el frontend solo contiene el bootstrap de Vite y permanece por implementar. El monorepositorio pnpm contiene `front/`, `back/`, `openspec/`, `.agents/`, `compose.yaml`, `pnpm-workspace.yaml`, `package.json` raíz, `pnpm-lock.yaml`, `AGENTS.md`, `readme.md` y `prompts.md`.
 
 ## Goals / Non-Goals
 
@@ -18,7 +18,7 @@ RecruitLane es un MVP individual para Recruiters. La motivación y el alcance fu
 - Introducir microservicios, GraphQL, CQRS, eventos, Clean Architecture o Hexagonal Architecture como estructuras obligatorias.
 - Crear paquetes compartidos, contratos comunes o un estado global de cliente sin una necesidad concreta.
 - Añadir colaboración, organizaciones, historial de etapas, recuperación de eliminaciones, refresh tokens, revocación de tokens o eliminación física de recursos top-level expuesta al usuario en V1.
-- Decidir proveedor de despliegue, proxy concreto, librería de interfaz/CSS, versiones de paquetes, scripts pnpm, parámetros Argon2id, secretos, CI/CD o configuración exacta de Docker.
+- Decidir proveedor de despliegue, proxy concreto, versiones de paquetes, scripts pnpm, parámetros Argon2id, secretos, CI/CD o configuración exacta de Docker.
 
 ## Decisions
 
@@ -38,7 +38,7 @@ Alternativas consideradas: microservicios, GraphQL y arquitecturas con capas obl
 
 El gestor de paquetes es pnpm y la estrategia de workspace es `pnpm workspace`. Los paquetes iniciales viven en `front/` y `back/`; no se crean `packages/common`, `packages/contracts` ni `shared/` mientras no haya una necesidad futura demostrada.
 
-El frontend usa React, TypeScript, Vite, TanStack Router, TanStack Query, React Hook Form, Vitest, React Testing Library y Playwright. Se organiza por funcionalidad:
+El frontend usa React, TypeScript, Vite, Tailwind CSS, TanStack Router, TanStack Query, React Hook Form, Vitest, React Testing Library y Playwright. Tailwind y los componentes React propios cubren la interfaz: no se incorpora una librería de componentes. Se usa Open Sans con fallback `sans-serif` e iconografía SVG propia y simple cuando aporte claridad. Se organiza por funcionalidad:
 
 ```text
 front/src/
@@ -59,6 +59,42 @@ Los componentes, hooks, formularios, operaciones API y tipos específicos perman
 La responsabilidad del estado es explícita: TanStack Query para estado de servidor, TanStack Router para estado de ruta, React Hook Form para formularios y estado de React (por ejemplo, `useState`) para UI local. No se añade Redux, Zustand, TanStack Start, TanStack Form ni otro almacén global en V1.
 
 Alternativa considerada: estado global o un paquete de contratos compartidos desde el inicio. Se descarta porque las responsabilidades ya están cubiertas por las bibliotecas elegidas y la duplicación limitada de reglas simples evita acoplar frontend y backend.
+
+### Interfaz, shell y navegación frontend
+
+La UI es sobria: superficies blancas o grises claras, azul como color principal y tonos moderados de verde, ámbar y rojo para éxito, advertencia y error. El contenido principal tiene un ancho máximo aproximado de 1200px, padding aproximado de 16/24/32px por breakpoint, gaps base de 16px y separación principal de 24px. En desktop el shell autenticado mantiene sidebar fija; en tablet la compacta y en móvil la oculta tras un drawer abierto desde la topbar. La topbar muestra `RecruitLane`, nombre y apellido del Recruiter y logout. La sidebar contiene solo `Vacancies`, `Candidates` y `Pipelines`: El item correspondiente a la sección activa se distingue mediante un fondo o realce ligeramente más oscuro que los demás. Applications se gestionan en el detalle de Vacancy. Tablas y Kanban permiten scroll horizontal cuando no caben; Candidates usa un grid responsive de hasta tres cards por fila. Los modales son pequeños para confirmaciones y movimientos, medianos para Candidate y Vacancy, y casi de ancho completo en móvil.
+
+`/login` y `/register` son la zona pública y presentan una card centrada sin el shell autenticado. `/` autenticado y un login correcto llevan a `/vacancies`; sin sesión, `/` lleva a `/login`. Al iniciar, el frontend resuelve `GET /auth/me` y muestra un estado de carga simple antes de decidir la ruta. Un visitante autenticado en login o registro se redirige a `/vacancies`, y una ruta autenticada directa válida se conserva tras resolver la sesión. Un `401` en la zona autenticada invalida la sesión local y redirige a `/login`.
+
+Los controles usan HTML semántico, labels visibles, foco visible, contraste suficiente y áreas de interacción cómodas. La carga muestra texto y spinner cuando corresponde; las mutaciones deshabilitan su botón y muestran un estado textual, como `Saving...`. Los errores de campo tras submit usan borde rojo atenuado y mensaje inline; Los campos requeridos muestran *, excepto en Login; los campos opcionales no muestran un indicador adicional.; los errores generales, de negocio y los éxitos usan un toast centrado arriba, de unos tres segundos y sin apilado. Un error inesperado de mutación mantiene el contexto; uno de carga inicial se muestra inline con `Try again`. Los empty states incluyen CTA cuando corresponde, salvo Pipelines, que siempre dispone de `Default`. Los formularios en modal no se cierran con backdrop ni Escape: solo `×` o `Cancel`, que descartan sin confirmación. Una 404 propia, sencilla y amigable, incluye ilustración propia y CTA a `/vacancies` o `/login` según sesión.
+
+### Flujos de autenticación
+
+Login y Register comparten la presentación pública. Register recoge `firstName`, `lastName`, `email`, `password` y `confirmPassword`; este último solo se valida en frontend. La contraseña es visible/ocultable, se valida entre 15 y 128 caracteres y debe coincidir con la confirmación. Register ofrece Cancel para volver a /login descartando los datos introducidos. Login presenta bajo los inputs el error genérico de credenciales inválidas o de rate limit. Un registro exitoso redirige a login con feedback de éxito; logout no pide confirmación. Estas decisiones consumen el contrato existente y no cambian sus errores, sesión ni controles de seguridad.
+
+### Candidates
+
+Candidates muestra cards no navegables con nombre y apellido, email y teléfono solo si existe; puede usar SVG pequeño para email o teléfono. El footer ofrece `Add to vacancy` y `Edit`; Create y Edit reutilizan el mismo modal. Un teléfono vacío o compuesto por whitespace se transforma a `null`. El listado usa grid responsive de hasta tres columnas, empty state con CTA y paginación simple Previous/Next con `pageSize=10`; V1 no añade búsqueda global ni detalle de Candidate.
+
+`Add to vacancy` abre un modal con combobox de Vacancies `OPEN`, filtrable localmente por título y empresa. Carga las opciones de forma lazy y paginada en bloques de 100 hasta disponer de todas las opciones.
+
+### Pipelines
+
+El listado es una tabla con `Default` primero y los personalizados por nombre; no expone columnas `isDefault` ni `isEditable`. `Default` muestra badge `Default`; un caret expande una representación compacta y visual de sus stages ordenadas, mostrando también su posición mediante etiquetas como Stage 1, Stage 2, etc. `Edit` y `Delete` solo aparecen si `isEditable=true`; `Copy` también está disponible para Default y pipelines no editables, abre creación con `<name> - Copy` y las mismas stages y posiciones como nuevas, y no genera alternativas automáticas si el nombre entra en conflicto. La paginación es Previous/Next y Delete requiere confirmación.
+
+Create y Edit comparten una página dedicada: nombre arriba y las diez posiciones de stage visibles. Las posiciones 1–3 siempre están activas y son obligatorias; las 4–10 usan switch y deben formar un prefijo continuo, por lo que desactivar una desactiva todas las posteriores. No hay drag & drop ni reordenamiento manual en V1: la posición visual es `position`. Edit conserva internamente los IDs de stages existentes sin mostrarlos. Los errores generales se notifican por toast y marcan los inputs implicados; un nombre duplicado marca todos los campos afectados. Save vuelve a `/pipelines` y refresca los datos; Cancel vuelve descartando cambios.
+
+### Vacancies y detalle
+
+Vacancies lista `title`, `companyName`, `createdAt`, `status` y acciones. Los badges son DRAFT gris oscuro, OPEN verde claro, FILLED ámbar/amarillo oscuro y CANCELLED rojo claro. Las filas no son navegables; las acciones son explícitas y `View` siempre queda al final. El filtro de estado son chips multi-select, donde ninguna selección equivale a All. Create y Edit reutilizan modal: Create contiene title, companyName, description textarea y Pipeline mediante combobox de pipelines activos, con Default primero y preview compacto de sus stages. El combobox carga de forma lazy las páginas necesarias con pageSize=100 hasta disponer de todos los Pipelines activos. Al abrir Edit desde el listado, el frontend resuelve primero el detalle de la Vacancy para obtener los datos que no forman parte de su representación resumida antes de poblar el modal. En Edit el Pipeline queda visible pero deshabilitado y nunca se envía en PATCH. La creación permanece en el listado, las fechas son cortas en el listado y más completas en detalle; hay empty state con CTA y Previous/Next con `pageSize=10`.
+
+El detalle encabeza title, badge, companyName y createdAt. `Edit` está disponible en los cuatro estados. DRAFT ofrece `Open vacancy`; OPEN, `Add application` y `Close vacancy`; FILLED y CANCELLED, `Reopen vacancy`. Open y Reopen solicitan confirmación; Close ofrece `Filled` o `Cancelled` con radio y no pide fecha de cierre. El Pipeline no se muestra como dato separado: sus stages se representan en el Kanban. Los cambios de estado actualizan la cache de TanStack Query sin recargar el navegador. Fuera de OPEN, las Applications son de solo lectura y desaparecen Add, Move y Remove.
+
+### Applications dentro de Vacancy
+
+Applications vive únicamente en `/vacancies/:id`. El Kanban, siempre visible, agrupa cards compactas por stage del Pipeline; cada card muestra nombre del Candidate y `createdAt` corto, y su footer contiene `Move` y `Remove`. El header de cada columna muestra nombre de stage y cantidad cargada; conserva `createdAt DESC` por stage y una columna vacía muestra solo `No applications`. El Kanban permite scroll horizontal.
+
+`Add application` solo se ofrece para una Vacancy OPEN. Desde Vacancy selecciona Candidates en un combobox con búsqueda local por email y nombre visible; desde Candidate selecciona Vacancies OPEN por título y empresa. Ambos cargan lazy páginas de 100 hasta completar sus opciones. Los duplicados se delegan a `APPLICATION_ALREADY_EXISTS`, conservan la selección y muestran toast. Move abre modal con todas las stages salvo la actual y Remove pide confirmación. La carga inicial del Kanban usa `pageSize=100`; si hay más, un control centrado `Load more applications` acumula páginas y muestra `Showing X of Y`. Add, Move y Remove actualizan el Kanban mediante TanStack Query sin reload completo.
 
 ### Backend NestJS modular y API REST
 
@@ -213,6 +249,5 @@ Si una migración versionada falla, backend no inicia y la causa se corrige medi
 ## Open Questions
 
 - Proveedor de despliegue y mecanismo concreto de proxy/reverse proxy.
-- Librería CSS/UI y layouts UX.
-- Dockerfiles/compose, scripts pnpm y CI/CD.
+- CI/CD.
 - Parámetros Argon2id, generación de `JWT_SECRET` y cadencia final de ejecución de tests.
