@@ -188,6 +188,8 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 - Formateo: `pnpm --filter back format` (actualmente termina con error porque no existe `test/**/*.ts`).
 - Lint: `pnpm --filter front lint` y `pnpm --filter back lint`.
 - Comprobación de tipos y build: `pnpm --filter front build` y `pnpm --filter back build`.
+- Pruebas de componentes frontend: `pnpm --filter front test`.
+- Pruebas E2E frontend: `pnpm --filter front test:e2e` (requiere el stack Docker en ejecución y navegadores Playwright instalados).
 - Pruebas backend unitarias, API e integración con PostgreSQL real mediante Testcontainers: `pnpm --filter back test`.
 - Pruebas E2E backend: `pnpm --filter back test:e2e`.
 - Generación del cliente Prisma: `pnpm --filter back prisma:generate`.
@@ -200,6 +202,6 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 - Aplicación de migraciones revisadas en Docker: `docker compose run --rm --no-deps --build migrate`.
 - Estado de migraciones en Docker: `docker compose run --rm --no-deps --entrypoint pnpm migrate --filter back exec prisma migrate status`.
 
-No hay todavía tooling de pruebas unitarias, componentes o E2E para frontend. Cuando se incorporen, documentar aquí sus comandos exactos antes de considerarlas parte de la suite.
+El frontend dispone de tooling de pruebas de componentes con Vitest y React Testing Library, y de configuración Playwright para E2E. Aún no hay escenarios E2E implementados; los comandos anteriores son la suite frontend disponible.
 
 Run the narrowest relevant validation during development and the complete documented validation suite before considering a material change finished.
