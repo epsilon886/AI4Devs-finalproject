@@ -39,7 +39,7 @@
 ## 6. Foundation y tooling frontend
 
 - [x] 6.1 Incorporar el tooling frontend aprobado (Tailwind CSS, TanStack Router, TanStack Query, React Hook Form, Vitest, React Testing Library y Playwright) y la fuente Open Sans, sin librería de componentes.
-- [ ] 6.2 Implementar el cliente HTTP relativo `/api`, credenciales, cabecera CSRF, normalización de errores y manejo transversal de `401`.
+- [x] 6.2 Implementar el cliente HTTP relativo `/api`, credenciales, cabecera CSRF, normalización de errores y manejo transversal de `401`.
 - [ ] 6.3 Implementar el shell responsive, estilos visuales, componentes transversales de carga, toast, modal, paginación, estados vacíos y 404, con los requisitos de accesibilidad aprobados.
 
 ## 7. Sesión y autenticación frontend
