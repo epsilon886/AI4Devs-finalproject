@@ -40,11 +40,11 @@
 
 - [x] 6.1 Incorporar el tooling frontend aprobado (Tailwind CSS, TanStack Router, TanStack Query, React Hook Form, Vitest, React Testing Library y Playwright) y la fuente Open Sans, sin librería de componentes.
 - [x] 6.2 Implementar el cliente HTTP relativo `/api`, credenciales, cabecera CSRF, normalización de errores y manejo transversal de `401`.
-- [ ] 6.3 Implementar el shell responsive, estilos visuales, componentes transversales de carga, toast, modal, paginación, estados vacíos y 404, con los requisitos de accesibilidad aprobados.
+- [x] 6.3 Implementar el shell responsive, estilos visuales, componentes transversales de carga, toast, modal, paginación, estados vacíos y 404, con los requisitos de accesibilidad aprobados.
 
 ## 7. Sesión y autenticación frontend
 
-- [ ] 7.1 Implementar la resolución inicial de `/auth/me`, guards/redirecciones de rutas públicas y autenticadas, conservación de ruta directa válida y logout.
+- [x] 7.1 Implementar la resolución inicial de `/auth/me`, guards/redirecciones de rutas públicas y autenticadas, conservación de ruta directa válida y logout.
 - [ ] 7.2 Implementar las pantallas y validaciones de Login y Register, incluidos feedback de éxito, errores genéricos/rate limit y control de visibilidad de contraseña.
 
 ## 8. Candidates frontend
