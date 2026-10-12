@@ -17,6 +17,8 @@ import {
   type AuthenticatedUser,
   type Session,
 } from '../features/auth/session.ts'
+import { LoginPage } from '../features/auth/LoginPage.tsx'
+import { RegisterPage } from '../features/auth/RegisterPage.tsx'
 import { queryClient } from '../lib/query-client.ts'
 
 export interface AppRouterOptions {
@@ -45,7 +47,7 @@ const loginRoute = createRoute({
       throw redirect({ to: '/vacancies' })
     }
   },
-  component: LoginPlaceholder,
+  component: LoginPage,
 })
 
 const registerRoute = createRoute({
@@ -56,7 +58,7 @@ const registerRoute = createRoute({
       throw redirect({ to: '/vacancies' })
     }
   },
-  component: RegisterPlaceholder,
+  component: RegisterPage,
 })
 
 const vacanciesRoute = createRoute({
@@ -160,14 +162,6 @@ function ContextualNotFoundPage() {
   const label = session ? 'Go to Vacancies' : 'Go to Login'
 
   return <NotFoundPage action={<Link to={destination}>{label}</Link>} />
-}
-
-function LoginPlaceholder() {
-  return <PlaceholderPage title="Login" />
-}
-
-function RegisterPlaceholder() {
-  return <PlaceholderPage title="Register" />
 }
 
 function VacanciesPlaceholder() {

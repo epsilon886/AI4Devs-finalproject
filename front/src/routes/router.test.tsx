@@ -1,9 +1,13 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest, setUnauthorizedHandler } from '../lib/api.ts'
-import { installSessionUnauthorizedHandler, logout } from '../features/auth/session.ts'
+import {
+  installSessionUnauthorizedHandler,
+  logout,
+  sessionQueryKey,
+} from '../features/auth/session.ts'
 import { createAppRouter, isAuthenticatedRoute } from './router.tsx'
 
 const fetchMock = vi.fn()
@@ -146,6 +150,141 @@ describe('session routing', () => {
       expect(screen.queryByRole('banner')).toBeNull()
     },
   )
+
+  it('renders the real LoginPage without the authenticated shell', async () => {
+    mockSession(null)
+
+    renderRouter('/login')
+
+    expect(await screen.findByRole('form', { name: 'Login' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'Email' })).toBeTruthy()
+    expect(screen.getByLabelText('Password')).toBeTruthy()
+    expect(screen.queryByRole('banner')).toBeNull()
+  })
+
+  it('renders the real RegisterPage without the authenticated shell', async () => {
+    mockSession(null)
+
+    renderRouter('/register')
+
+    expect(await screen.findByRole('form', { name: 'Register' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: /First name/ })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: /Last name/ })).toBeTruthy()
+    expect(screen.queryByRole('banner')).toBeNull()
+  })
+
+  it('establishes the session from Login and enters Vacancies without refetching /auth/me', async () => {
+    const email = 'ada@example.com'
+    const password = 'a'.repeat(15)
+    let sessionRequests = 0
+
+    vi.stubGlobal(
+      'fetch',
+      fetchMock.mockImplementation((path: string) => {
+        if (path === '/api/auth/me') {
+          sessionRequests += 1
+          return Promise.resolve(
+            jsonResponse(
+              {
+                statusCode: 401,
+                code: 'UNAUTHORIZED',
+                message: 'Authentication required',
+              },
+              401,
+            ),
+          )
+        }
+
+        if (path === '/api/auth/login') {
+          return Promise.resolve(jsonResponse(authenticatedUser, 200))
+        }
+
+        throw new Error('Unexpected request: ' + path)
+      }),
+    )
+    const { queryClient, router } = renderRouter('/login')
+
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Email' }), {
+      target: { value: email },
+    })
+    fireEvent.change(screen.getByLabelText('Password'), {
+      target: { value: password },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+
+    await waitFor(
+      () => expect(router.state.location.pathname).toBe('/vacancies'),
+      { timeout: 500 },
+    )
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/login',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      }),
+    )
+    expect(queryClient.getQueryData(sessionQueryKey)).toEqual(authenticatedUser)
+    expect(await screen.findByRole('heading', { name: 'Vacancies' })).toBeTruthy()
+    expect(sessionRequests).toBe(1)
+  })
+
+  it('returns to Login with success feedback after registration without creating a session', async () => {
+    const email = 'ada@example.com'
+    const password = 'a'.repeat(15)
+    vi.stubGlobal(
+      'fetch',
+      fetchMock.mockImplementation((path: string) => {
+        if (path === '/api/auth/me') {
+          return Promise.resolve(
+            jsonResponse(
+              {
+                statusCode: 401,
+                code: 'UNAUTHORIZED',
+                message: 'Authentication required',
+              },
+              401,
+            ),
+          )
+        }
+
+        if (path === '/api/auth/register') {
+          return Promise.resolve(jsonResponse({ message: 'Account created successfully' }, 201))
+        }
+
+        throw new Error('Unexpected request: ' + path)
+      }),
+    )
+    const { queryClient, router } = renderRouter('/register')
+
+    fireEvent.change(await screen.findByRole('textbox', { name: /First name/ }), {
+      target: { value: 'Ada' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /Last name/ }), {
+      target: { value: 'Lovelace' },
+    })
+    fireEvent.change(screen.getByRole('textbox', { name: /Email/ }), {
+      target: { value: email },
+    })
+    fireEvent.change(screen.getByLabelText(/^Password/), {
+      target: { value: password },
+    })
+    fireEvent.change(screen.getByLabelText(/^Confirm password/), {
+      target: { value: password },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Register' }))
+
+    await waitFor(
+      () => expect(router.state.location.pathname).toBe('/login'),
+      { timeout: 500 },
+    )
+    const successFeedback = await screen.findByRole('status')
+    expect(successFeedback.textContent).toContain('Account created successfully')
+    expect(successFeedback.textContent).not.toContain(email)
+    expect(successFeedback.textContent).not.toContain(password)
+    expect(router.state.location.href).toBe('/login')
+    expect(router.history.canGoBack()).toBe(false)
+    expect(queryClient.getQueryData(sessionQueryKey)).toBeNull()
+  })
 
   it.each([
     [authenticatedUser, '/vacancies'],

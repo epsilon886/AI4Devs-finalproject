@@ -45,7 +45,7 @@
 ## 7. Sesión y autenticación frontend
 
 - [x] 7.1 Implementar la resolución inicial de `/auth/me`, guards/redirecciones de rutas públicas y autenticadas, conservación de ruta directa válida y logout.
-- [ ] 7.2 Implementar las pantallas y validaciones de Login y Register, incluidos feedback de éxito, errores genéricos/rate limit y control de visibilidad de contraseña.
+- [x] 7.2 Implementar las pantallas y validaciones de Login y Register, incluidos feedback de éxito, errores genéricos/rate limit y control de visibilidad de contraseña.
 
 ## 8. Candidates frontend
 
