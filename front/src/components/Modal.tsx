@@ -98,7 +98,7 @@ export function Modal({ open, title, children, onClose }: ModalProps) {
             {title}
           </h2>
           <button
-            aria-label="Close"
+            aria-label="Cerrar"
             className="rounded p-1 text-slate-600 hover:bg-slate-100"
             onClick={onClose}
             ref={closeButtonRef}
@@ -116,7 +116,7 @@ export function Modal({ open, title, children, onClose }: ModalProps) {
             onClick={onClose}
             type="button"
           >
-            Cancel
+            Cancelar
           </button>
         </div>
       </div>

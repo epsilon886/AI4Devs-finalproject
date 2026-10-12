@@ -102,9 +102,9 @@ describe('session routing', () => {
   })
 
   it.each([
-    ['/vacancies', 'Vacancies'],
-    ['/candidates', 'Candidates'],
-    ['/pipelines', 'Pipelines'],
+    ['/vacancies', 'Vacantes'],
+    ['/candidates', 'Candidatos'],
+    ['/pipelines', 'Flujos de selección'],
   ])('keeps the direct private route %s with a session', async (path, heading) => {
     mockSession(authenticatedUser)
 
@@ -156,9 +156,9 @@ describe('session routing', () => {
 
     renderRouter('/login')
 
-    expect(await screen.findByRole('form', { name: 'Login' })).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: 'Email' })).toBeTruthy()
-    expect(screen.getByLabelText('Password')).toBeTruthy()
+    expect(await screen.findByRole('form', { name: 'Iniciar sesión' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: 'Correo electrónico' })).toBeTruthy()
+    expect(screen.getByLabelText('Contraseña')).toBeTruthy()
     expect(screen.queryByRole('banner')).toBeNull()
   })
 
@@ -167,9 +167,9 @@ describe('session routing', () => {
 
     renderRouter('/register')
 
-    expect(await screen.findByRole('form', { name: 'Register' })).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: /First name/ })).toBeTruthy()
-    expect(screen.getByRole('textbox', { name: /Last name/ })).toBeTruthy()
+    expect(await screen.findByRole('form', { name: 'Crear cuenta' })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: /Nombre/ })).toBeTruthy()
+    expect(screen.getByRole('textbox', { name: /Apellido/ })).toBeTruthy()
     expect(screen.queryByRole('banner')).toBeNull()
   })
 
@@ -204,13 +204,13 @@ describe('session routing', () => {
     )
     const { queryClient, router } = renderRouter('/login')
 
-    fireEvent.change(await screen.findByRole('textbox', { name: 'Email' }), {
+    fireEvent.change(await screen.findByRole('textbox', { name: 'Correo electrónico' }), {
       target: { value: email },
     })
-    fireEvent.change(screen.getByLabelText('Password'), {
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
       target: { value: password },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Log in' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     await waitFor(
       () => expect(router.state.location.pathname).toBe('/vacancies'),
@@ -224,7 +224,7 @@ describe('session routing', () => {
       }),
     )
     expect(queryClient.getQueryData(sessionQueryKey)).toEqual(authenticatedUser)
-    expect(await screen.findByRole('heading', { name: 'Vacancies' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Vacantes' })).toBeTruthy()
     expect(sessionRequests).toBe(1)
   })
 
@@ -256,29 +256,29 @@ describe('session routing', () => {
     )
     const { queryClient, router } = renderRouter('/register')
 
-    fireEvent.change(await screen.findByRole('textbox', { name: /First name/ }), {
+    fireEvent.change(await screen.findByRole('textbox', { name: /Nombre/ }), {
       target: { value: 'Ada' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: /Last name/ }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Apellido/ }), {
       target: { value: 'Lovelace' },
     })
-    fireEvent.change(screen.getByRole('textbox', { name: /Email/ }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Correo electrónico/ }), {
       target: { value: email },
     })
-    fireEvent.change(screen.getByLabelText(/^Password/), {
+    fireEvent.change(screen.getByLabelText(/^Contraseña/), {
       target: { value: password },
     })
-    fireEvent.change(screen.getByLabelText(/^Confirm password/), {
+    fireEvent.change(screen.getByLabelText(/^Confirmar contraseña/), {
       target: { value: password },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Register' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     await waitFor(
       () => expect(router.state.location.pathname).toBe('/login'),
       { timeout: 500 },
     )
     const successFeedback = await screen.findByRole('status')
-    expect(successFeedback.textContent).toContain('Account created successfully')
+    expect(successFeedback.textContent).toContain('Tu cuenta fue creada correctamente.')
     expect(successFeedback.textContent).not.toContain(email)
     expect(successFeedback.textContent).not.toContain(password)
     expect(router.state.location.href).toBe('/login')
@@ -295,7 +295,7 @@ describe('session routing', () => {
       mockSession(user)
       const { router } = renderRouter('/unknown-route')
 
-      expect(await screen.findByRole('heading', { name: 'Page not found' })).toBeTruthy()
+      expect(await screen.findByRole('heading', { name: 'Página no encontrada' })).toBeTruthy()
       expect(screen.getByRole('link').getAttribute('href')).toBe(expectedDestination)
       expect(router.state.location.pathname).toBe('/unknown-route')
     },
@@ -318,7 +318,7 @@ describe('session routing', () => {
 
     renderRouter('/')
 
-    expect(await screen.findByRole('button', { name: 'Try again' }, { timeout: 500 })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Reintentar' }, { timeout: 500 })).toBeTruthy()
   })
 
   it('redirects once to /login with replacement after a protected request is UNAUTHORIZED', async () => {
@@ -330,7 +330,7 @@ describe('session routing', () => {
       onSessionExpired: navigateToLogin,
     })
 
-    await screen.findByRole('heading', { name: 'Vacancies' }, { timeout: 500 })
+    await screen.findByRole('heading', { name: 'Vacantes' }, { timeout: 500 })
     vi.stubGlobal(
       'fetch',
       fetchMock.mockImplementation(() =>
@@ -374,7 +374,7 @@ describe('session routing', () => {
       onSessionExpired: navigateToLogin,
     })
 
-    expect(await screen.findByRole('heading', { name: 'Login' }, { timeout: 500 })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' }, { timeout: 500 })).toBeTruthy()
     const privateQueryKey = ['vacancies', { page: 1 }] as const
     queryClient.setQueryData(privateQueryKey, { items: ['private vacancy'] })
     mockSession(null)
@@ -394,7 +394,7 @@ describe('session routing', () => {
     mockSession(authenticatedUser)
     const { queryClient, router } = renderRouter('/candidates')
 
-    await screen.findByRole('heading', { name: 'Candidates' }, { timeout: 500 })
+    await screen.findByRole('heading', { name: 'Candidatos' }, { timeout: 500 })
     vi.stubGlobal('fetch', fetchMock.mockResolvedValue(new Response(null, { status: 204 })))
 
     await logout({

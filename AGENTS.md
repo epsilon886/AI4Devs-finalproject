@@ -175,6 +175,8 @@ Keep project documentation concise and consistent with the implementation.
 
 Use Spanish for project-facing documentation unless an existing file or technical convention requires otherwise.
 
+La interfaz visible y accesible debe estar en español, incluidos mensajes, validaciones y estados. Los ejemplos en inglés de `design.md` no fijan el idioma literal de la UI; deben preservarse los contratos técnicos y los datos persistidos.
+
 Preserve the existing filenames `readme.md` and `prompts.md`.
 
 When architecture, setup commands, project structure, testing commands, or development conventions become concrete, update this file in the same change so future agents do not need to infer them.

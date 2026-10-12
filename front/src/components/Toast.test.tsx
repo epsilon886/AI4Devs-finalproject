@@ -11,15 +11,15 @@ it.each([
   ['warning', 'status'],
   ['error', 'alert'],
 ] as const)('announces %s messages with the %s role', (type: ToastType, role) => {
-  render(<Toast type={type} message="Saved" onClose={vi.fn()} />)
+  render(<Toast type={type} message="Guardado" onClose={vi.fn()} />)
 
-  expect(screen.getByRole(role).textContent).toContain('Saved')
+  expect(screen.getByRole(role).textContent).toContain('Guardado')
 })
 
 it('calls onClose after approximately three seconds', () => {
   vi.useFakeTimers()
   const onClose = vi.fn()
-  render(<Toast type="success" message="Saved" onClose={onClose} />)
+  render(<Toast type="success" message="Guardado" onClose={onClose} />)
 
   expect(screen.getByRole('status')).toBeTruthy()
   vi.advanceTimersByTime(2_999)
@@ -31,7 +31,7 @@ it('calls onClose after approximately three seconds', () => {
 it('cleans up its timer when it disappears', () => {
   vi.useFakeTimers()
   const onClose = vi.fn()
-  const { unmount } = render(<Toast type="error" message="Failed" onClose={onClose} />)
+  const { unmount } = render(<Toast type="error" message="No se pudo completar la acción" onClose={onClose} />)
 
   expect(screen.getByRole('alert')).toBeTruthy()
   unmount()

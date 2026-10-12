@@ -5,25 +5,25 @@ import { Modal } from './Modal.tsx'
 
 it('exposes an accessible dialog identified by its title', () => {
   render(
-    <Modal open title="Delete candidate" onClose={vi.fn()}>
-      <p>This action cannot be undone.</p>
+    <Modal open title="Eliminar candidato" onClose={vi.fn()}>
+      <p>Esta acción no se puede deshacer.</p>
     </Modal>,
   )
 
-  const dialog = screen.getByRole('dialog', { name: 'Delete candidate' })
+  const dialog = screen.getByRole('dialog', { name: 'Eliminar candidato' })
   expect(dialog.getAttribute('aria-modal')).toBe('true')
 })
 
 it('requests close through the explicit close and Cancel controls', () => {
   const onClose = vi.fn()
   render(
-    <Modal open title="Delete candidate" onClose={onClose}>
-      <p>This action cannot be undone.</p>
+    <Modal open title="Eliminar candidato" onClose={onClose}>
+      <p>Esta acción no se puede deshacer.</p>
     </Modal>,
   )
 
-  fireEvent.click(screen.getByRole('button', { name: 'Close' }))
-  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }))
+  fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
 
   expect(onClose).toHaveBeenCalledTimes(2)
 })
@@ -31,8 +31,8 @@ it('requests close through the explicit close and Cancel controls', () => {
 it('does not request close for Escape or a backdrop interaction', () => {
   const onClose = vi.fn()
   render(
-    <Modal open title="Delete candidate" onClose={onClose}>
-      <p>This action cannot be undone.</p>
+    <Modal open title="Eliminar candidato" onClose={onClose}>
+      <p>Esta acción no se puede deshacer.</p>
     </Modal>,
   )
 
@@ -46,12 +46,12 @@ it('does not request close for Escape or a backdrop interaction', () => {
 it('moves focus into the dialog, keeps it there and restores it after closing', () => {
   render(<ModalHarness />)
 
-  const opener = screen.getByRole('button', { name: 'Open modal' })
+  const opener = screen.getByRole('button', { name: 'Abrir modal' })
   opener.focus()
   fireEvent.click(opener)
 
-  const closeButton = screen.getByRole('button', { name: 'Close' })
-  const cancelButton = screen.getByRole('button', { name: 'Cancel' })
+  const closeButton = screen.getByRole('button', { name: 'Cerrar' })
+  const cancelButton = screen.getByRole('button', { name: 'Cancelar' })
   expect(document.activeElement).toBe(closeButton)
 
   cancelButton.focus()
@@ -71,10 +71,10 @@ function ModalHarness() {
   return (
     <>
       <button onClick={() => setOpen(true)} type="button">
-        Open modal
+        Abrir modal
       </button>
-      <Modal open={open} title="Delete candidate" onClose={() => setOpen(false)}>
-        <button type="button">Confirm</button>
+      <Modal open={open} title="Eliminar candidato" onClose={() => setOpen(false)}>
+        <button type="button">Confirmar</button>
       </Modal>
     </>
   )

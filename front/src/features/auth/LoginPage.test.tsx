@@ -31,21 +31,21 @@ async function renderLoginPageWithFetch(fetchMock: ReturnType<typeof vi.fn>) {
     </QueryClientProvider>,
   )
 
-  await screen.findByRole('form', { name: 'Login' })
+  await screen.findByRole('form', { name: 'Iniciar sesión' })
 
   return { fetchMock, queryClient, router }
 }
 
 function emailInput(): HTMLInputElement {
-  return screen.getByRole('textbox', { name: 'Email' }) as HTMLInputElement
+  return screen.getByRole('textbox', { name: 'Correo electrónico' }) as HTMLInputElement
 }
 
 function passwordInput(): HTMLInputElement {
-  return screen.getByLabelText('Password') as HTMLInputElement
+  return screen.getByLabelText('Contraseña') as HTMLInputElement
 }
 
 function submitButton(): HTMLButtonElement {
-  return screen.getByRole('button', { name: 'Log in' }) as HTMLButtonElement
+  return screen.getByRole('button', { name: 'Iniciar sesión' }) as HTMLButtonElement
 }
 
 function jsonResponse(body: unknown, status: number): Response {
@@ -65,7 +65,7 @@ describe('LoginPage', () => {
   it('presents accessible email and password fields with a login action', async () => {
     await renderLoginPage()
 
-    expect(screen.getByRole('heading', { name: 'Login' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Iniciar sesión' })).toBeTruthy()
     expect(emailInput().type).toBe('email')
     expect(passwordInput().type).toBe('password')
     expect(submitButton()).toBeTruthy()
@@ -73,13 +73,13 @@ describe('LoginPage', () => {
 
   it('links to Register without submitting Login or sending a request', async () => {
     const { fetchMock, router } = await renderLoginPage()
-    const form = screen.getByRole('form', { name: 'Login' })
+    const form = screen.getByRole('form', { name: 'Iniciar sesión' })
     let submitCount = 0
     form.addEventListener('submit', () => {
       submitCount += 1
     })
 
-    fireEvent.click(screen.getByRole('link', { name: 'Register' }))
+    fireEvent.click(screen.getByRole('link', { name: 'Crear cuenta' }))
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/register'))
     expect(submitCount).toBe(0)
@@ -91,10 +91,10 @@ describe('LoginPage', () => {
 
     fireEvent.click(submitButton())
 
-    expect(await screen.findByText('Email is required')).toBeTruthy()
-    expect(await screen.findByText('Password is required')).toBeTruthy()
-    expect(screen.getByText('Email', { selector: 'label' }).textContent).toBe('Email')
-    expect(screen.getByText('Password', { selector: 'label' }).textContent).toBe('Password')
+    expect(await screen.findByText('El correo electrónico es obligatorio.')).toBeTruthy()
+    expect(await screen.findByText('La contraseña es obligatoria.')).toBeTruthy()
+    expect(screen.getByText('Correo electrónico', { selector: 'label' }).textContent).toBe('Correo electrónico')
+    expect(screen.getByText('Contraseña', { selector: 'label' }).textContent).toBe('Contraseña')
   })
 
   it('rejects an invalid email format and emails longer than the contractual maximum', async () => {
@@ -102,13 +102,13 @@ describe('LoginPage', () => {
 
     fireEvent.change(emailInput(), { target: { value: 'not-an-email' } })
     fireEvent.click(submitButton())
-    expect(await screen.findByText('Enter a valid email address')).toBeTruthy()
+    expect(await screen.findByText('Ingresa un correo electrónico válido.')).toBeTruthy()
 
     fireEvent.change(emailInput(), {
       target: { value: `${'a'.repeat(190)}@example.com` },
     })
     fireEvent.click(submitButton())
-    expect(await screen.findByText('Email must be at most 200 characters')).toBeTruthy()
+    expect(await screen.findByText('El correo electrónico debe tener como máximo 200 caracteres.')).toBeTruthy()
   })
 
   it('enforces password limits on the literal value without trimming it', async () => {
@@ -117,11 +117,11 @@ describe('LoginPage', () => {
     fireEvent.change(emailInput(), { target: { value: 'ada@example.com' } })
     fireEvent.change(passwordInput(), { target: { value: 'a'.repeat(14) } })
     fireEvent.click(submitButton())
-    expect(await screen.findByText('Password must be at least 15 characters')).toBeTruthy()
+    expect(await screen.findByText('La contraseña debe tener al menos 15 caracteres.')).toBeTruthy()
 
     fireEvent.change(passwordInput(), { target: { value: 'a'.repeat(129) } })
     fireEvent.click(submitButton())
-    expect(await screen.findByText('Password must be at most 128 characters')).toBeTruthy()
+    expect(await screen.findByText('La contraseña debe tener como máximo 128 caracteres.')).toBeTruthy()
 
     const passwordWithWhitespace = `${' '.repeat(14)}a`
     fireEvent.change(passwordInput(), { target: { value: passwordWithWhitespace } })
@@ -129,8 +129,8 @@ describe('LoginPage', () => {
 
     await waitFor(() => {
       expect(passwordInput().value).toBe(passwordWithWhitespace)
-      expect(screen.queryByText('Password must be at least 15 characters')).toBeNull()
-      expect(screen.queryByText('Password must be at most 128 characters')).toBeNull()
+      expect(screen.queryByText('La contraseña debe tener al menos 15 caracteres.')).toBeNull()
+      expect(screen.queryByText('La contraseña debe tener como máximo 128 caracteres.')).toBeNull()
     })
   })
 
@@ -138,19 +138,19 @@ describe('LoginPage', () => {
     await renderLoginPage()
 
     const password = passwordInput()
-    const form = screen.getByRole('form', { name: 'Login' })
+    const form = screen.getByRole('form', { name: 'Iniciar sesión' })
     let submitCount = 0
     form.addEventListener('submit', () => {
       submitCount += 1
     })
     fireEvent.change(password, { target: { value: 'password value' } })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Show password' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar contraseña' }))
 
     expect(password.type).toBe('text')
     expect(password.value).toBe('password value')
     expect(submitCount).toBe(0)
-    expect(screen.getByRole('button', { name: 'Hide password' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Ocultar contraseña' })).toBeTruthy()
   })
 
   it('keeps Login and shows accessible generic feedback for invalid credentials and rate limits', async () => {
@@ -182,7 +182,7 @@ describe('LoginPage', () => {
 
     submitValidCredentials()
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Invalid email or password')
+    expect((await screen.findByRole('alert')).textContent).toContain('El correo electrónico o la contraseña son incorrectos.')
     expect(emailInput().value).toBe('ada@example.com')
     expect(passwordInput().value).toBe('a'.repeat(15))
     expect(router.state.location.pathname).toBe('/login')
@@ -190,7 +190,7 @@ describe('LoginPage', () => {
 
     fireEvent.click(submitButton())
 
-    expect(await screen.findByText('Too many requests. Please try again later.')).toBeTruthy()
+    expect(await screen.findByText('Demasiados intentos. Inténtalo de nuevo más tarde.')).toBeTruthy()
     expect(router.state.location.pathname).toBe('/login')
   })
 
@@ -214,13 +214,14 @@ describe('LoginPage', () => {
 
     submitValidCredentials()
 
-    const emailError = await screen.findByText('Email could not be accepted')
-    const passwordError = await screen.findByText('Password could not be accepted')
+    const emailError = await screen.findByText('Revisa el correo electrónico.')
+    const passwordError = await screen.findByText('Revisa la contraseña.')
     expect(document.getElementById(emailInput().getAttribute('aria-describedby') ?? ''))
       .toBe(emailError)
     expect(document.getElementById(passwordInput().getAttribute('aria-describedby') ?? ''))
       .toBe(passwordError)
-    expect(screen.getByText('Please correct the request data')).toBeTruthy()
+    expect(screen.getByText('Revisa los datos ingresados.')).toBeTruthy()
+    expect(screen.queryByText('Email could not be accepted')).toBeNull()
   })
 
   it.each([
@@ -245,7 +246,7 @@ describe('LoginPage', () => {
 
     submitValidCredentials()
 
-    expect((await screen.findByRole('alert')).textContent).toContain('Unable to log in. Try again.')
+    expect((await screen.findByRole('alert')).textContent).toContain('No pudimos iniciar sesión. Inténtalo de nuevo.')
     expect(emailInput().value).toBe('ada@example.com')
     expect(passwordInput().value).toBe('a'.repeat(15))
     expect(submitButton().disabled).toBe(false)
@@ -262,7 +263,7 @@ describe('LoginPage', () => {
 
     submitValidCredentials()
 
-    expect((await screen.findByRole('status')).textContent).toContain('Logging in...')
+    expect((await screen.findByRole('status')).textContent).toContain('Iniciando sesión...')
     expect(submitButton().disabled).toBe(true)
     fireEvent.click(submitButton())
     expect(fetchMock).toHaveBeenCalledTimes(1)

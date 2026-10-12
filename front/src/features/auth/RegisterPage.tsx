@@ -14,9 +14,10 @@ interface RegisterFormValues {
 }
 
 const emailPattern = /^[^\s@]+@[^\s@]+$/
-const registrationConflictMessage = 'Unable to create account with the provided information'
-const rateLimitMessage = 'Too many requests. Please try again later.'
-const technicalErrorMessage = 'Unable to register. Try again.'
+const registrationConflictMessage = 'No fue posible crear la cuenta con los datos proporcionados.'
+const rateLimitMessage = 'Demasiados intentos. Inténtalo de nuevo más tarde.'
+const validationErrorMessage = 'Revisa los datos ingresados.'
+const technicalErrorMessage = 'No pudimos crear la cuenta. Inténtalo de nuevo.'
 
 export function RegisterPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
@@ -64,7 +65,7 @@ export function RegisterPage() {
         }
 
         if (error.status === 400 && error.code === 'VALIDATION_ERROR') {
-          let hasGeneralError = false
+          let hasUnknownFieldError = false
 
           for (const fieldError of error.errors ?? []) {
             if (
@@ -73,15 +74,22 @@ export function RegisterPage() {
               fieldError.field === 'email' ||
               fieldError.field === 'password'
             ) {
-              setError(fieldError.field, { type: 'server', message: fieldError.message })
-            } else if (!hasGeneralError) {
-              setToastMessage(fieldError.message)
-              hasGeneralError = true
+              setError(fieldError.field, {
+                type: 'server',
+                message: {
+                  firstName: 'Revisa el nombre.',
+                  lastName: 'Revisa el apellido.',
+                  email: 'Revisa el correo electrónico.',
+                  password: 'Revisa la contraseña.',
+                }[fieldError.field],
+              })
+            } else {
+              hasUnknownFieldError = true
             }
           }
 
-          if (!hasGeneralError && !error.errors?.length) {
-            setToastMessage(error.message)
+          if (hasUnknownFieldError || !error.errors?.length) {
+            setToastMessage(validationErrorMessage)
           }
           return
         }
@@ -101,9 +109,9 @@ export function RegisterPage() {
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4 sm:p-6">
         <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <h1 className="text-2xl font-semibold text-slate-900" id="register-heading">
-          Register
+          Crear cuenta
         </h1>
-        <p className="mt-2 text-sm text-slate-600">Create your RecruitLane account.</p>
+        <p className="mt-2 text-sm text-slate-600">Crea tu cuenta de RecruitLane.</p>
 
         <form
           aria-labelledby="register-heading"
@@ -117,7 +125,7 @@ export function RegisterPage() {
         >
           <div>
             <label className="block text-sm font-medium text-slate-800" htmlFor="register-first-name">
-              First name <span aria-hidden="true">*</span>
+              Nombre <span aria-hidden="true">*</span>
             </label>
             <input
               aria-describedby={errors.firstName ? 'register-first-name-error' : undefined}
@@ -133,11 +141,11 @@ export function RegisterPage() {
               maxLength={100}
               type="text"
               {...register('firstName', {
-                required: 'First name is required',
+                required: 'El nombre es obligatorio.',
                 validate: {
-                  notEmpty: (value) => value.trim().length > 0 || 'First name cannot be empty',
+                  notEmpty: (value) => value.trim().length > 0 || 'El nombre no puede estar vacío.',
                   maximumLength: (value) =>
-                    value.trim().length <= 100 || 'First name must be at most 100 characters',
+                    value.trim().length <= 100 || 'El nombre debe tener como máximo 100 caracteres.',
                 },
               })}
             />
@@ -150,7 +158,7 @@ export function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-800" htmlFor="register-last-name">
-              Last name <span aria-hidden="true">*</span>
+              Apellido <span aria-hidden="true">*</span>
             </label>
             <input
               aria-describedby={errors.lastName ? 'register-last-name-error' : undefined}
@@ -166,11 +174,11 @@ export function RegisterPage() {
               maxLength={100}
               type="text"
               {...register('lastName', {
-                required: 'Last name is required',
+                required: 'El apellido es obligatorio.',
                 validate: {
-                  notEmpty: (value) => value.trim().length > 0 || 'Last name cannot be empty',
+                  notEmpty: (value) => value.trim().length > 0 || 'El apellido no puede estar vacío.',
                   maximumLength: (value) =>
-                    value.trim().length <= 100 || 'Last name must be at most 100 characters',
+                    value.trim().length <= 100 || 'El apellido debe tener como máximo 100 caracteres.',
                 },
               })}
             />
@@ -183,7 +191,7 @@ export function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-800" htmlFor="register-email">
-              Email <span aria-hidden="true">*</span>
+              Correo electrónico <span aria-hidden="true">*</span>
             </label>
             <input
               aria-describedby={errors.email ? 'register-email-error' : undefined}
@@ -199,12 +207,12 @@ export function RegisterPage() {
               maxLength={200}
               type="email"
               {...register('email', {
-                required: 'Email is required',
+                required: 'El correo electrónico es obligatorio.',
                 validate: {
                   format: (value) =>
-                    emailPattern.test(value.trim()) || 'Enter a valid email address',
+                    emailPattern.test(value.trim()) || 'Ingresa un correo electrónico válido.',
                   maximumLength: (value) =>
-                    value.trim().length <= 200 || 'Email must be at most 200 characters',
+                    value.trim().length <= 200 || 'El correo electrónico debe tener como máximo 200 caracteres.',
                 },
               })}
             />
@@ -217,7 +225,7 @@ export function RegisterPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-800" htmlFor="register-password">
-              Password <span aria-hidden="true">*</span>
+              Contraseña <span aria-hidden="true">*</span>
             </label>
             <div className="relative mt-1">
               <input
@@ -234,24 +242,24 @@ export function RegisterPage() {
                 maxLength={128}
                 type={isPasswordVisible ? 'text' : 'password'}
                 {...register('password', {
-                  required: 'Password is required',
+                  required: 'La contraseña es obligatoria.',
                   minLength: {
                     value: 15,
-                    message: 'Password must be at least 15 characters',
+                    message: 'La contraseña debe tener al menos 15 caracteres.',
                   },
                   maxLength: {
                     value: 128,
-                    message: 'Password must be at most 128 characters',
+                    message: 'La contraseña debe tener como máximo 128 caracteres.',
                   },
                 })}
               />
               <button
-                aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
+                aria-label={isPasswordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-blue-700 hover:text-blue-900"
                 onClick={() => setIsPasswordVisible((visible) => !visible)}
                 type="button"
               >
-                {isPasswordVisible ? 'Hide' : 'Show'}
+                {isPasswordVisible ? 'Ocultar' : 'Mostrar'}
               </button>
             </div>
             {errors.password ? (
@@ -266,7 +274,7 @@ export function RegisterPage() {
               className="block text-sm font-medium text-slate-800"
               htmlFor="register-confirm-password"
             >
-              Confirm password <span aria-hidden="true">*</span>
+              Confirmar contraseña <span aria-hidden="true">*</span>
             </label>
             <div className="relative mt-1">
               <input
@@ -282,17 +290,19 @@ export function RegisterPage() {
                 id="register-confirm-password"
                 type={isConfirmationVisible ? 'text' : 'password'}
                 {...register('confirmPassword', {
-                  required: 'Confirm password is required',
-                  validate: (value) => value === getValues('password') || 'Passwords do not match',
+                  required: 'La confirmación de contraseña es obligatoria.',
+                  validate: (value) => value === getValues('password') || 'Las contraseñas no coinciden.',
                 })}
               />
               <button
-                aria-label={isConfirmationVisible ? 'Hide confirm password' : 'Show confirm password'}
+                aria-label={
+                  isConfirmationVisible ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'
+                }
                 className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-blue-700 hover:text-blue-900"
                 onClick={() => setIsConfirmationVisible((visible) => !visible)}
                 type="button"
               >
-                {isConfirmationVisible ? 'Hide' : 'Show'}
+                {isConfirmationVisible ? 'Ocultar' : 'Mostrar'}
               </button>
             </div>
             {errors.confirmPassword ? (
@@ -313,19 +323,19 @@ export function RegisterPage() {
               onClick={() => void router.navigate({ to: '/login' })}
               type="button"
             >
-              Cancel
+              Cancelar
             </button>
             <button
               className="flex-1 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
               disabled={registerMutation.isPending}
               type="submit"
             >
-              Register
+              Crear cuenta
             </button>
           </div>
           {registerMutation.isPending ? (
             <p className="text-sm text-slate-600" role="status">
-              Registering...
+              Creando cuenta...
             </p>
           ) : null}
         </form>

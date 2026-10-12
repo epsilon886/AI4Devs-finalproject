@@ -60,9 +60,9 @@ function renderProtectedRoute(initialPath = '/vacancies') {
 
 describe('AppShell', () => {
   it.each([
-    ['/vacancies', 'Vacancies'],
-    ['/candidates', 'Candidates'],
-    ['/pipelines', 'Pipelines'],
+    ['/vacancies', 'Vacantes'],
+    ['/candidates', 'Candidatos'],
+    ['/pipelines', 'Flujos de selección'],
   ])('shows the authenticated shell with %s as the active section', async (path, activeLabel) => {
     mockAuthenticatedSession(() => Promise.resolve(new Response(null, { status: 204 })))
 
@@ -71,14 +71,14 @@ describe('AppShell', () => {
     expect((await screen.findByRole('banner')).textContent).toContain('RecruitLane')
     expect(screen.getByRole('banner').textContent).toContain('Ada Lovelace')
 
-    const navigation = screen.getByRole('navigation', { name: 'Main navigation' })
+    const navigation = screen.getByRole('navigation', { name: 'Navegación principal' })
     expect(
       Array.from(navigation.querySelectorAll('a')).map((link) => link.textContent),
-    ).toEqual(['Vacancies', 'Candidates', 'Pipelines'])
+    ).toEqual(['Vacantes', 'Candidatos', 'Flujos de selección'])
     expect(screen.getByRole('link', { name: activeLabel }).getAttribute('aria-current')).toBe(
       'page',
     )
-    for (const label of ['Vacancies', 'Candidates', 'Pipelines']) {
+    for (const label of ['Vacantes', 'Candidatos', 'Flujos de selección']) {
       if (label !== activeLabel) {
         expect(screen.getByRole('link', { name: label }).getAttribute('aria-current')).toBeNull()
       }
@@ -96,13 +96,13 @@ describe('AppShell', () => {
     renderProtectedRoute()
 
     const logoutButton = (await screen.findByRole('button', {
-      name: 'Logout',
+      name: 'Cerrar sesión',
     })) as HTMLButtonElement
     fireEvent.click(logoutButton)
 
     await waitFor(() => {
       expect(logoutButton.disabled).toBe(true)
-      expect(logoutButton.textContent).toContain('Logging out...')
+      expect(logoutButton.textContent).toContain('Cerrando sesión...')
     })
 
     resolveLogout?.(new Response(null, { status: 204 }))
@@ -112,7 +112,7 @@ describe('AppShell', () => {
     mockAuthenticatedSession(() => Promise.resolve(new Response(null, { status: 204 })))
     const router = renderProtectedRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Logout' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Cerrar sesión' }))
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/login'), {
       timeout: 500,
@@ -142,7 +142,7 @@ describe('AppShell', () => {
     const router = renderProtectedRoute('/candidates')
 
     const logoutButton = (await screen.findByRole('button', {
-      name: 'Logout',
+      name: 'Cerrar sesión',
     })) as HTMLButtonElement
     fireEvent.click(logoutButton)
 
@@ -162,35 +162,35 @@ describe('AppShell', () => {
     renderProtectedRoute()
 
     const navigationToggle = (await screen.findByRole('button', {
-      name: 'Open navigation',
+      name: 'Abrir navegación',
     })) as HTMLButtonElement
 
     expect(navigationToggle.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryByRole('dialog', { name: 'Mobile navigation' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Navegación móvil' })).toBeNull()
 
     fireEvent.click(navigationToggle)
 
     expect(navigationToggle.getAttribute('aria-expanded')).toBe('true')
-    expect(screen.getByRole('dialog', { name: 'Mobile navigation' })).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Navegación móvil' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Close navigation' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar navegación' }))
 
     expect(navigationToggle.getAttribute('aria-expanded')).toBe('false')
-    expect(screen.queryByRole('dialog', { name: 'Mobile navigation' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Navegación móvil' })).toBeNull()
   })
 
   it('shows only the main destinations and active section in the mobile drawer', async () => {
     mockAuthenticatedSession(() => Promise.resolve(new Response(null, { status: 204 })))
     renderProtectedRoute('/candidates')
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open navigation' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir navegación' }))
 
-    const drawer = screen.getByRole('dialog', { name: 'Mobile navigation' })
-    const navigation = within(drawer).getByRole('navigation', { name: 'Mobile navigation' })
+    const drawer = screen.getByRole('dialog', { name: 'Navegación móvil' })
+    const navigation = within(drawer).getByRole('navigation', { name: 'Navegación móvil' })
     expect(
       Array.from(navigation.querySelectorAll('a')).map((link) => link.textContent),
-    ).toEqual(['Vacancies', 'Candidates', 'Pipelines'])
-    expect(within(navigation).getByRole('link', { name: 'Candidates' }).getAttribute('aria-current')).toBe(
+    ).toEqual(['Vacantes', 'Candidatos', 'Flujos de selección'])
+    expect(within(navigation).getByRole('link', { name: 'Candidatos' }).getAttribute('aria-current')).toBe(
       'page',
     )
   })
@@ -199,28 +199,28 @@ describe('AppShell', () => {
     mockAuthenticatedSession(() => Promise.resolve(new Response(null, { status: 204 })))
     const router = renderProtectedRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open navigation' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir navegación' }))
     fireEvent.click(
-      within(screen.getByRole('dialog', { name: 'Mobile navigation' })).getByRole('link', {
-        name: 'Candidates',
+      within(screen.getByRole('dialog', { name: 'Navegación móvil' })).getByRole('link', {
+        name: 'Candidatos',
       }),
     )
 
     await waitFor(() => expect(router.state.location.pathname).toBe('/candidates'), {
       timeout: 500,
     })
-    expect(screen.queryByRole('dialog', { name: 'Mobile navigation' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'Navegación móvil' })).toBeNull()
   })
 
   it('keeps focus in the drawer when tabbing forward from its last focusable element', async () => {
     mockAuthenticatedSession(() => Promise.resolve(new Response(null, { status: 204 })))
     renderProtectedRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open navigation' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir navegación' }))
 
-    const drawer = screen.getByRole('dialog', { name: 'Mobile navigation' })
-    const closeButton = within(drawer).getByRole('button', { name: 'Close navigation' })
-    const lastLink = within(drawer).getByRole('link', { name: 'Pipelines' })
+    const drawer = screen.getByRole('dialog', { name: 'Navegación móvil' })
+    const closeButton = within(drawer).getByRole('button', { name: 'Cerrar navegación' })
+    const lastLink = within(drawer).getByRole('link', { name: 'Flujos de selección' })
     lastLink.focus()
 
     fireEvent.keyDown(lastLink, { key: 'Tab' })
@@ -232,11 +232,11 @@ describe('AppShell', () => {
     mockAuthenticatedSession(() => Promise.resolve(new Response(null, { status: 204 })))
     renderProtectedRoute()
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Open navigation' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir navegación' }))
 
-    const drawer = screen.getByRole('dialog', { name: 'Mobile navigation' })
-    const firstButton = within(drawer).getByRole('button', { name: 'Close navigation' })
-    const lastLink = within(drawer).getByRole('link', { name: 'Pipelines' })
+    const drawer = screen.getByRole('dialog', { name: 'Navegación móvil' })
+    const firstButton = within(drawer).getByRole('button', { name: 'Cerrar navegación' })
+    const lastLink = within(drawer).getByRole('link', { name: 'Flujos de selección' })
     firstButton.focus()
 
     fireEvent.keyDown(firstButton, { key: 'Tab', shiftKey: true })

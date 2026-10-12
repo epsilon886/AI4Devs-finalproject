@@ -2,7 +2,7 @@ interface LoadingStateProps {
   label?: string
 }
 
-export function LoadingState({ label = 'Loading...' }: LoadingStateProps) {
+export function LoadingState({ label = 'Cargando...' }: LoadingStateProps) {
   return (
     <div className="flex items-center justify-center gap-3 py-8 text-slate-600" role="status">
       <span

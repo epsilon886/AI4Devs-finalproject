@@ -139,9 +139,9 @@ function SessionResolutionError({ reset }: { reset?: () => void }) {
 
   return (
     <main>
-      <p>Unable to load the session.</p>
+      <p>No pudimos cargar la sesión.</p>
       <button onClick={handleRetry} type="button">
-        Try again
+        Reintentar
       </button>
     </main>
   )
@@ -159,7 +159,7 @@ function ContextualNotFoundPage() {
   }
 
   const destination = session ? '/vacancies' : '/login'
-  const label = session ? 'Go to Vacancies' : 'Go to Login'
+  const label = session ? 'Ir a Vacantes' : 'Ir a Iniciar sesión'
 
   return <NotFoundPage action={<Link to={destination}>{label}</Link>} />
 }
@@ -169,7 +169,7 @@ function VacanciesPlaceholder() {
 
   return (
     <AppShell user={user}>
-      <PlaceholderPage title="Vacancies" />
+      <PlaceholderPage title="Vacantes" />
     </AppShell>
   )
 }
@@ -179,7 +179,7 @@ function CandidatesPlaceholder() {
 
   return (
     <AppShell user={user}>
-      <PlaceholderPage title="Candidates" />
+      <PlaceholderPage title="Candidatos" />
     </AppShell>
   )
 }
@@ -189,7 +189,7 @@ function PipelinesPlaceholder() {
 
   return (
     <AppShell user={user}>
-      <PlaceholderPage title="Pipelines" />
+      <PlaceholderPage title="Flujos de selección" />
     </AppShell>
   )
 }

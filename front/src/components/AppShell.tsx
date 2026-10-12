@@ -17,9 +17,9 @@ export interface AppShellProps {
 }
 
 const navigationItems = [
-  { to: '/vacancies', label: 'Vacancies' },
-  { to: '/candidates', label: 'Candidates' },
-  { to: '/pipelines', label: 'Pipelines' },
+  { to: '/vacancies', label: 'Vacantes' },
+  { to: '/candidates', label: 'Candidatos' },
+  { to: '/pipelines', label: 'Flujos de selección' },
 ] as const
 
 const focusableSelector =
@@ -106,7 +106,7 @@ export function AppShell({ user, children }: AppShellProps) {
           <button
             aria-controls="mobile-navigation"
             aria-expanded={isMobileNavigationOpen}
-            aria-label="Open navigation"
+            aria-label="Abrir navegación"
             className="rounded-md p-2 text-slate-700 hover:bg-slate-100 md:hidden"
             onClick={() => setIsMobileNavigationOpen(true)}
             ref={navigationToggleRef}
@@ -126,19 +126,19 @@ export function AppShell({ user, children }: AppShellProps) {
             onClick={() => logoutMutation.mutate()}
             type="button"
           >
-            {logoutMutation.isPending ? 'Logging out...' : 'Logout'}
+            {logoutMutation.isPending ? 'Cerrando sesión...' : 'Cerrar sesión'}
           </button>
         </div>
       </header>
       <div className="flex min-h-[calc(100vh-65px)] bg-slate-50">
         <aside className="hidden border-r border-slate-200 bg-white p-4 md:block md:w-16 lg:sticky lg:top-0 lg:h-[calc(100vh-65px)] lg:w-56">
-          <NavigationLinks label="Main navigation" pathname={pathname} />
+          <NavigationLinks label="Navegación principal" pathname={pathname} />
         </aside>
         <div className="min-w-0 flex-1 p-6">{children}</div>
       </div>
       {isMobileNavigationOpen ? (
         <div
-          aria-label="Mobile navigation"
+          aria-label="Navegación móvil"
           aria-modal="true"
           className="fixed inset-0 z-40 bg-slate-950/30 md:hidden"
           onKeyDown={handleDrawerKeyDown}
@@ -153,7 +153,7 @@ export function AppShell({ user, children }: AppShellProps) {
             <div className="mb-4 flex items-center justify-between">
               <span className="font-semibold text-slate-900">RecruitLane</span>
               <button
-                aria-label="Close navigation"
+                aria-label="Cerrar navegación"
                 className="rounded-md p-2 text-slate-700 hover:bg-slate-100"
                 onClick={closeMobileNavigation}
                 ref={drawerCloseButtonRef}
@@ -163,7 +163,7 @@ export function AppShell({ user, children }: AppShellProps) {
               </button>
             </div>
             <NavigationLinks
-              label="Mobile navigation"
+              label="Navegación móvil"
               onNavigate={closeMobileNavigation}
               pathname={pathname}
             />
@@ -172,7 +172,7 @@ export function AppShell({ user, children }: AppShellProps) {
       ) : null}
       {logoutMutation.isError ? (
         <Toast
-          message="Unable to log out. Try again."
+          message="No pudimos cerrar sesión. Inténtalo de nuevo."
           onClose={() => logoutMutation.reset()}
           type="error"
         />

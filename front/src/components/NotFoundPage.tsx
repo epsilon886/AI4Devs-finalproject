@@ -33,10 +33,10 @@ export function NotFoundPage({ action }: NotFoundPageProps) {
         </text>
       </svg>
       <h1 id="not-found-title" className="mt-6 text-2xl font-semibold text-slate-900">
-        Page not found
+        Página no encontrada
       </h1>
       <p className="mt-2 text-slate-600">
-        The page you are looking for is not available.
+        La página que buscas no está disponible.
       </p>
       {action ? <div className="mt-6">{action}</div> : null}
     </section>
