@@ -19,6 +19,7 @@ import {
 } from '../features/auth/session.ts'
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { RegisterPage } from '../features/auth/RegisterPage.tsx'
+import { CandidatesPage } from '../features/candidates/CandidatesPage.tsx'
 import { queryClient } from '../lib/query-client.ts'
 
 export interface AppRouterOptions {
@@ -76,7 +77,7 @@ const candidatesRoute = createRoute({
   beforeLoad: async ({ context }) => ({
     user: requireSession(await getSession(context.queryClient)),
   }),
-  component: CandidatesPlaceholder,
+  component: CandidatesRoute,
 })
 
 const pipelinesRoute = createRoute({
@@ -174,12 +175,12 @@ function VacanciesPlaceholder() {
   )
 }
 
-function CandidatesPlaceholder() {
+function CandidatesRoute() {
   const { user } = candidatesRoute.useRouteContext()
 
   return (
     <AppShell user={user}>
-      <PlaceholderPage title="Candidatos" />
+      <CandidatesPage />
     </AppShell>
   )
 }

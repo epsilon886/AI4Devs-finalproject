@@ -49,8 +49,8 @@
 
 ## 8. Candidates frontend
 
-- [ ] 8.1 Implementar el listado paginado en cards, estados vacíos y el modal compartido de creación/edición de Candidates, incluida la normalización de `phone` vacío a `null`.
-- [ ] 8.2 Implementar `Add to vacancy` desde Candidate con combobox de Vacancies OPEN, búsqueda local y carga lazy paginada de opciones.
+- [x] 8.1 Implementar el listado paginado en cards, estados vacíos y el modal compartido de creación/edición de Candidates, incluida la normalización de `phone` vacío a `null`.
+- [x] 8.2 Implementar `Add to vacancy` desde Candidate con combobox de Vacancies OPEN, búsqueda local y carga lazy paginada de opciones.
 
 ## 9. Pipelines frontend
 
