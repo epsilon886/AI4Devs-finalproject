@@ -11,12 +11,20 @@ export interface ModalProps {
   title: string
   children: ReactNode
   onClose: () => void
+  primaryAction?: {
+    label: string
+    pendingLabel?: string
+    variant?: 'default' | 'destructive'
+    onClick: () => void
+    disabled?: boolean
+    pending?: boolean
+  }
 }
 
 const focusableSelector =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
-export function Modal({ open, title, children, onClose }: ModalProps) {
+export function Modal({ open, title, children, onClose, primaryAction }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
   const previouslyFocusedRef = useRef<HTMLElement | null>(null)
@@ -110,7 +118,24 @@ export function Modal({ open, title, children, onClose }: ModalProps) {
 
         <div className="mt-4 text-slate-700">{children}</div>
 
-        <div className="mt-6 flex justify-end">
+        <div className={`mt-6 flex flex-wrap gap-3 ${primaryAction ? 'justify-start' : 'justify-end'}`}>
+          {primaryAction ? (
+            <button
+              className={[
+                'rounded-md px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed',
+                primaryAction.variant === 'destructive'
+                  ? 'bg-red-600 hover:bg-red-700 disabled:bg-red-400'
+                  : 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400',
+              ].join(' ')}
+              disabled={primaryAction.disabled || primaryAction.pending}
+              onClick={primaryAction.onClick}
+              type="button"
+            >
+              {primaryAction.pending && primaryAction.pendingLabel
+                ? primaryAction.pendingLabel
+                : primaryAction.label}
+            </button>
+          ) : null}
           <button
             className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             onClick={onClose}

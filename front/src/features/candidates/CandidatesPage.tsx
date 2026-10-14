@@ -348,9 +348,7 @@ function AddCandidateToVacancyModal({
     }
   }
 
-  function submitApplication(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
+  function submitApplication() {
     if (!selectedVacancyId) {
       setSelectionError('Selecciona una vacante.')
       return
@@ -364,13 +362,30 @@ function AddCandidateToVacancyModal({
     applicationMutation.mutate(selectedVacancyId)
   }
 
+  function handleApplicationFormSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    submitApplication()
+  }
+
   return (
     <Modal
       open
       title="Agregar a vacante"
       onClose={applicationMutation.isPending ? () => {} : onClose}
+      primaryAction={{
+        disabled: applicationMutation.isPending,
+        label: 'Agregar a vacante',
+        onClick: submitApplication,
+        pending: applicationMutation.isPending,
+        pendingLabel: 'Agregando...',
+      }}
     >
-      <form aria-label="Agregar a vacante" className="space-y-4" noValidate onSubmit={submitApplication}>
+      <form
+        aria-label="Agregar a vacante"
+        className="space-y-4"
+        noValidate
+        onSubmit={handleApplicationFormSubmit}
+      >
         {vacanciesQuery.isPending ? <LoadingState label="Cargando vacantes..." /> : null}
 
         {vacanciesQuery.isError ? (
@@ -474,13 +489,6 @@ function AddCandidateToVacancyModal({
           </div>
         ) : null}
 
-        <button
-          className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
-          disabled={applicationMutation.isPending}
-          type="submit"
-        >
-          {applicationMutation.isPending ? 'Agregando...' : 'Agregar a vacante'}
-        </button>
         {applicationMutation.isPending ? (
           <p className="text-sm text-slate-600" role="status">
             Agregando candidato a la vacante...
@@ -641,8 +649,23 @@ function CandidateFormModal({
     void handleSubmit(handleCandidateSubmit)(event)
   }
 
+  function submitCandidate() {
+    void handleSubmit(handleCandidateSubmit)()
+  }
+
   return (
-    <Modal open title={title} onClose={mutation.isPending ? () => {} : onClose}>
+    <Modal
+      open
+      title={title}
+      onClose={mutation.isPending ? () => {} : onClose}
+      primaryAction={{
+        disabled: mutation.isPending,
+        label: 'Guardar candidato',
+        onClick: submitCandidate,
+        pending: mutation.isPending,
+        pendingLabel: 'Guardando...',
+      }}
+    >
       <form
         aria-label={title}
         className="space-y-4"
@@ -716,13 +739,6 @@ function CandidateFormModal({
           type="tel"
         />
 
-        <button
-          className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-400"
-          disabled={mutation.isPending}
-          type="submit"
-        >
-          {mutation.isPending ? 'Guardando...' : 'Guardar candidato'}
-        </button>
         {mutation.isPending ? (
           <p className="text-sm text-slate-600" role="status">
             Guardando candidato...

@@ -54,8 +54,8 @@
 
 ## 9. Pipelines frontend
 
-- [ ] 9.1 Implementar el listado paginado de Pipelines, expansión compacta de stages, acciones condicionadas por editabilidad, Copy y confirmación de Delete.
-- [ ] 9.2 Implementar la página compartida de creación/edición con las diez posiciones, prefijo continuo de stages, conservación interna de IDs y feedback de validación aprobado.
+- [x] 9.1 Implementar el listado paginado de Pipelines, expansión compacta de stages, acciones condicionadas por editabilidad, Copy y confirmación de Delete.
+- [x] 9.2 Implementar la página compartida de creación/edición con las diez posiciones, prefijo continuo de stages, conservación interna de IDs y feedback de validación aprobado.
 
 ## 10. Vacancies frontend
 

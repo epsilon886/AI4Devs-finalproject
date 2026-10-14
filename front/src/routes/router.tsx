@@ -1,12 +1,15 @@
+import { useState } from 'react'
 import { useQuery, type QueryClient } from '@tanstack/react-query'
 import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
   Link,
+  Outlet,
   redirect,
   type RouterHistory,
   useRouter,
+  useRouterState,
 } from '@tanstack/react-router'
 import { AppShell } from '../components/AppShell.tsx'
 import { LoadingState } from '../components/LoadingState.tsx'
@@ -20,6 +23,8 @@ import {
 import { LoginPage } from '../features/auth/LoginPage.tsx'
 import { RegisterPage } from '../features/auth/RegisterPage.tsx'
 import { CandidatesPage } from '../features/candidates/CandidatesPage.tsx'
+import { PipelineFormPage } from '../features/pipelines/PipelineFormPage.tsx'
+import { clearPipelineCopy, PipelinesPage } from '../features/pipelines/PipelinesPage.tsx'
 import { queryClient } from '../lib/query-client.ts'
 
 export interface AppRouterOptions {
@@ -86,7 +91,16 @@ const pipelinesRoute = createRoute({
   beforeLoad: async ({ context }) => ({
     user: requireSession(await getSession(context.queryClient)),
   }),
-  component: PipelinesPlaceholder,
+  component: PipelinesRoute,
+})
+
+const pipelinesFormRoute = createRoute({
+  getParentRoute: () => pipelinesRoute,
+  path: 'form',
+  validateSearch: (search: Record<string, unknown>) => ({
+    id: typeof search.id === 'string' ? search.id : undefined,
+  }),
+  component: PipelinesFormRoute,
 })
 
 const routeTree = rootRoute.addChildren([
@@ -95,7 +109,7 @@ const routeTree = rootRoute.addChildren([
   registerRoute,
   vacanciesRoute,
   candidatesRoute,
-  pipelinesRoute,
+  pipelinesRoute.addChildren([pipelinesFormRoute]),
 ])
 
 export function createAppRouter({ queryClient, history }: AppRouterOptions) {
@@ -114,7 +128,7 @@ export function createAppRouter({ queryClient, history }: AppRouterOptions) {
 export const router = createAppRouter({ queryClient })
 
 export function isAuthenticatedRoute(pathname: string): boolean {
-  return authenticatedRoutePaths.has(pathname)
+  return authenticatedRoutePaths.has(pathname) || pathname.startsWith('/pipelines/')
 }
 
 function getSession(queryClient: QueryClient): Promise<Session> {
@@ -185,13 +199,56 @@ function CandidatesRoute() {
   )
 }
 
-function PipelinesPlaceholder() {
+function PipelinesRoute() {
   const { user } = pipelinesRoute.useRouteContext()
+  const router = useRouter()
+  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const [form, setForm] = useState<{ id?: string } | null>(null)
+
+  function closeForm() {
+    setForm(null)
+    void router.navigate({ to: '/pipelines' })
+  }
 
   return (
     <AppShell user={user}>
-      <PlaceholderPage title="Flujos de selección" />
+      {form ? (
+        <PipelineFormPage id={form.id} onBack={closeForm} />
+      ) : pathname === '/pipelines/form' ? (
+        <Outlet />
+      ) : (
+        <PipelinesPage
+          onCopy={() => {
+            setForm({})
+            void router.navigate({ to: '/pipelines/form', search: { id: undefined } })
+          }}
+          onCreate={() => {
+            clearPipelineCopy()
+            setForm({})
+            void router.navigate({ to: '/pipelines/form', search: { id: undefined } })
+          }}
+          onEdit={(id) => {
+            clearPipelineCopy()
+            setForm({ id })
+            void router.navigate({ to: '/pipelines/form', search: { id } })
+          }}
+        />
+      )}
     </AppShell>
+  )
+}
+
+function PipelinesFormRoute() {
+  const { id } = pipelinesFormRoute.useSearch()
+  const router = useRouter()
+
+  return (
+    <PipelineFormPage
+      id={id}
+      onBack={() => {
+        void router.navigate({ to: '/pipelines' })
+      }}
+    />
   )
 }
 
