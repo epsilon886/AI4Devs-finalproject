@@ -59,8 +59,8 @@
 
 ## 10. Vacancies frontend
 
-- [ ] 10.1 Implementar el listado paginado de Vacancies, chips de filtro de estado, acciones explícitas, badges, empty state y modales compartidos Create/Edit con selección y preview de Pipeline.
-- [ ] 10.2 Implementar el detalle de Vacancy, sus acciones por ciclo de vida, modales de transición y actualización de cache sin recarga completa.
+- [x] 10.1 Implementar el listado paginado de Vacancies, chips de filtro de estado, acciones explícitas, badges, empty state y modales compartidos Create/Edit con selección y preview de Pipeline.
+- [x] 10.2 Implementar el detalle de Vacancy, sus acciones por ciclo de vida, modales de transición y actualización de cache sin recarga completa.
 
 ## 11. Applications integradas en Vacancy
 

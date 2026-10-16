@@ -25,6 +25,8 @@ import { RegisterPage } from '../features/auth/RegisterPage.tsx'
 import { CandidatesPage } from '../features/candidates/CandidatesPage.tsx'
 import { PipelineFormPage } from '../features/pipelines/PipelineFormPage.tsx'
 import { clearPipelineCopy, PipelinesPage } from '../features/pipelines/PipelinesPage.tsx'
+import { VacancyDetailPage } from '../features/vacancies/VacancyDetailPage.tsx'
+import { VacanciesPage } from '../features/vacancies/VacanciesPage.tsx'
 import { queryClient } from '../lib/query-client.ts'
 
 export interface AppRouterOptions {
@@ -73,7 +75,16 @@ const vacanciesRoute = createRoute({
   beforeLoad: async ({ context }) => ({
     user: requireSession(await getSession(context.queryClient)),
   }),
-  component: VacanciesPlaceholder,
+  component: VacanciesRoute,
+})
+
+const vacancyDetailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/vacancies/$vacancyId',
+  beforeLoad: async ({ context }) => ({
+    user: requireSession(await getSession(context.queryClient)),
+  }),
+  component: VacancyDetailRoute,
 })
 
 const candidatesRoute = createRoute({
@@ -108,6 +119,7 @@ const routeTree = rootRoute.addChildren([
   loginRoute,
   registerRoute,
   vacanciesRoute,
+  vacancyDetailRoute,
   candidatesRoute,
   pipelinesRoute.addChildren([pipelinesFormRoute]),
 ])
@@ -128,7 +140,7 @@ export function createAppRouter({ queryClient, history }: AppRouterOptions) {
 export const router = createAppRouter({ queryClient })
 
 export function isAuthenticatedRoute(pathname: string): boolean {
-  return authenticatedRoutePaths.has(pathname) || pathname.startsWith('/pipelines/')
+  return authenticatedRoutePaths.has(pathname) || pathname.startsWith('/pipelines/') || pathname.startsWith('/vacancies/')
 }
 
 function getSession(queryClient: QueryClient): Promise<Session> {
@@ -179,12 +191,28 @@ function ContextualNotFoundPage() {
   return <NotFoundPage action={<Link to={destination}>{label}</Link>} />
 }
 
-function VacanciesPlaceholder() {
+function VacanciesRoute() {
   const { user } = vacanciesRoute.useRouteContext()
+  const router = useRouter()
 
   return (
     <AppShell user={user}>
-      <PlaceholderPage title="Vacantes" />
+      <VacanciesPage
+        onView={(vacancyId) => {
+          void router.navigate({ to: '/vacancies/$vacancyId', params: { vacancyId } })
+        }}
+      />
+    </AppShell>
+  )
+}
+
+function VacancyDetailRoute() {
+  const { user } = vacancyDetailRoute.useRouteContext()
+  const { vacancyId } = vacancyDetailRoute.useParams()
+
+  return (
+    <AppShell user={user}>
+      <VacancyDetailPage vacancyId={vacancyId} />
     </AppShell>
   )
 }
@@ -249,14 +277,6 @@ function PipelinesFormRoute() {
         void router.navigate({ to: '/pipelines' })
       }}
     />
-  )
-}
-
-function PlaceholderPage({ title }: { title: string }) {
-  return (
-    <main>
-      <h1>{title}</h1>
-    </main>
   )
 }
 
