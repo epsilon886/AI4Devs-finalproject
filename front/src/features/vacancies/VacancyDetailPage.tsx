@@ -6,6 +6,7 @@ import { Modal } from '../../components/Modal.tsx'
 import { NotFoundPage } from '../../components/NotFoundPage.tsx'
 import { Toast, type ToastType } from '../../components/Toast.tsx'
 import { ApiHttpError, apiRequest } from '../../lib/api.ts'
+import { VacancyApplications } from './VacancyApplications.tsx'
 import {
   VacancyFormModal,
   VacancyStatusBadge,
@@ -174,6 +175,8 @@ export function VacancyDetailPage({ vacancyId }: { vacancyId: string }) {
             </button>
           ) : null}
         </div>
+
+        <VacancyApplications vacancy={vacancy} />
       </main>
 
       {isEditing ? (

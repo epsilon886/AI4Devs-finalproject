@@ -182,6 +182,7 @@ export function CandidatesPage() {
           candidate={candidateToAddToVacancy}
           onClose={() => setCandidateToAddToVacancy(null)}
           onToast={setToast}
+          queryClient={queryClient}
         />
       ) : null}
 
@@ -263,10 +264,12 @@ function AddCandidateToVacancyModal({
   candidate,
   onClose,
   onToast,
+  queryClient,
 }: {
   candidate: Candidate
   onClose: () => void
   onToast: (toast: ToastState | null) => void
+  queryClient: ReturnType<typeof useQueryClient>
 }) {
   const [search, setSearch] = useState('')
   const [selectedVacancyId, setSelectedVacancyId] = useState('')
@@ -288,7 +291,8 @@ function AddCandidateToVacancyModal({
       setSelectionError(null)
       onToast(null)
     },
-    onSuccess: () => {
+    onSuccess: async (_application, vacancyId) => {
+      await queryClient.invalidateQueries({ queryKey: ['vacancy-applications', vacancyId] })
       onClose()
       onToast({ type: 'success', message: 'El candidato se agregó a la vacante.' })
     },
@@ -522,15 +526,15 @@ function applicationErrorMessage(error: unknown): string {
     }
 
     if (error.code === 'VACANCY_NOT_OPEN') {
-      return 'VACANCY_NOT_OPEN: la vacante ya no está abierta.'
+      return 'La vacante ya no está abierta.'
     }
 
     if (error.code === 'VACANCY_NOT_FOUND') {
-      return 'VACANCY_NOT_FOUND: la vacante ya no está disponible.'
+      return 'La vacante ya no está disponible.'
     }
 
     if (error.code === 'CANDIDATE_NOT_FOUND') {
-      return 'CANDIDATE_NOT_FOUND: el candidato ya no está disponible.'
+      return 'El candidato ya no está disponible.'
     }
 
     if (error.code === 'VALIDATION_ERROR') {

@@ -64,8 +64,8 @@
 
 ## 11. Applications integradas en Vacancy
 
-- [ ] 11.1 Implementar el Kanban paginado y acumulativo en el detalle de Vacancy, con lectura condicionada por estado, scroll horizontal y conteos por stage.
-- [ ] 11.2 Implementar Add, Move y Remove de Applications, sus modales/comboboxes con carga lazy, manejo de duplicados y actualización de TanStack Query sin reload completo.
+- [x] 11.1 Implementar el Kanban paginado y acumulativo en el detalle de Vacancy, con lectura condicionada por estado, scroll horizontal y conteos por stage.
+- [x] 11.2 Implementar Add, Move y Remove de Applications, sus modales/comboboxes con carga lazy, manejo de duplicados y actualización de TanStack Query sin reload completo.
 
 ## 12. Pruebas frontend e integración
 
