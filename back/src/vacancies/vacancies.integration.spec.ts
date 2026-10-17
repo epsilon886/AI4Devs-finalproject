@@ -13,10 +13,7 @@ const TESTCONTAINERS_LIFECYCLE_TIMEOUT_MS = 60_000;
 
 interface VacancyServiceContract {
   create(userId: string, dto: VacancyInput): Promise<PublicVacancy>;
-  findAll(
-    userId: string,
-    pagination: VacancyListQuery,
-  ): Promise<VacancyPage>;
+  findAll(userId: string, pagination: VacancyListQuery): Promise<VacancyPage>;
   findOne(userId: string, id: string): Promise<PublicVacancy>;
   update(
     userId: string,
@@ -42,6 +39,7 @@ interface VacancyListQuery {
   page: number;
   pageSize: number;
   status?: VacancyStatus[];
+  title?: string;
 }
 
 interface PublicVacancy {
@@ -145,7 +143,9 @@ describe('Vacancies PostgreSQL integration', () => {
       pipelineId: pipeline.id,
       status: 'DRAFT',
     });
-    await expect(pipelinesService.findOne(owner.id, pipeline.id)).resolves.toMatchObject({
+    await expect(
+      pipelinesService.findOne(owner.id, pipeline.id),
+    ).resolves.toMatchObject({
       isEditable: false,
     });
     await expect(
@@ -166,17 +166,21 @@ describe('Vacancies PostgreSQL integration', () => {
 
     await expect(
       vacanciesService.findAll(owner.id, { page: 1, pageSize: 10 }),
-    ).resolves.toMatchObject({ vacancies: [{ id: created.id, title: 'Owner role' }] });
+    ).resolves.toMatchObject({
+      vacancies: [{ id: created.id, title: 'Owner role' }],
+    });
     await expect(
       vacanciesService.findAll(other.id, { page: 1, pageSize: 10 }),
     ).resolves.toMatchObject({ vacancies: [] });
-    await expect(vacanciesService.findOne(other.id, created.id)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
+    await expect(
+      vacanciesService.findOne(other.id, created.id),
+    ).rejects.toBeInstanceOf(NotFoundException);
     await expect(
       vacanciesService.update(other.id, created.id, { title: 'Leaked' }),
     ).rejects.toBeInstanceOf(NotFoundException);
-    await expect(prisma.vacancy.findUniqueOrThrow({ where: { id: created.id } })).resolves.toMatchObject({
+    await expect(
+      prisma.vacancy.findUniqueOrThrow({ where: { id: created.id } }),
+    ).resolves.toMatchObject({
       title: 'Owner role',
     });
   });
@@ -208,7 +212,9 @@ describe('Vacancies PostgreSQL integration', () => {
       status: 'FILLED',
       pipeline: { name: 'Filled hiring' },
     });
-    await expect(prisma.vacancy.findUniqueOrThrow({ where: { id: fixture.id } })).resolves.toMatchObject({
+    await expect(
+      prisma.vacancy.findUniqueOrThrow({ where: { id: fixture.id } }),
+    ).resolves.toMatchObject({
       pipelineId: pipeline.id,
       status: 'FILLED',
       title: 'Updated title',
@@ -290,7 +296,10 @@ describe('Vacancies PostgreSQL integration', () => {
 
   it('returns the current Vacancy for a status no-op', async () => {
     const owner = await recruiter('owner-status-noop@example.com');
-    const pipeline = await customPipeline(owner.id, 'Cancelled lifecycle hiring');
+    const pipeline = await customPipeline(
+      owner.id,
+      'Cancelled lifecycle hiring',
+    );
     const fixture = await prisma.vacancy.create({
       data: {
         userId: owner.id,
@@ -381,6 +390,227 @@ describe('Vacancies PostgreSQL integration', () => {
     expect(draft.id).toBeDefined();
   });
 
+  it('orders the owner collection globally before pagination by status, case-insensitive title, and id', async () => {
+    const owner = await recruiter('owner-list-order@example.com');
+    const other = await recruiter('other-list-order@example.com');
+    const ownerPipeline = await customPipeline(owner.id, 'Owner list order');
+    const otherPipeline = await customPipeline(other.id, 'Other list order');
+    const fixtures: Array<{
+      id: string;
+      status: VacancyStatus;
+      title: string;
+    }> = [
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000101',
+        status: 'OPEN',
+        title: 'alpha',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000102',
+        status: 'OPEN',
+        title: 'ALPHA',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000103',
+        status: 'OPEN',
+        title: 'Alpha',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000104',
+        status: 'OPEN',
+        title: 'beta',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000105',
+        status: 'DRAFT',
+        title: 'alpha',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000106',
+        status: 'DRAFT',
+        title: 'beta',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000107',
+        status: 'FILLED',
+        title: 'alpha',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000108',
+        status: 'FILLED',
+        title: 'beta',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000109',
+        status: 'CANCELLED',
+        title: 'alpha',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000110',
+        status: 'CANCELLED',
+        title: 'beta',
+      },
+      {
+        id: '018f0f64-2d8a-7f0b-8000-000000000111',
+        status: 'CANCELLED',
+        title: 'zeta',
+      },
+    ];
+
+    await Promise.all(
+      fixtures.map(({ id, status, title }, index) =>
+        prisma.vacancy.create({
+          data: {
+            id,
+            userId: owner.id,
+            pipelineId: ownerPipeline.id,
+            title,
+            companyName: 'RecruitLane',
+            description: 'Ordered fixture',
+            status,
+            createdAt: new Date(
+              `2026-01-${String(index + 1).padStart(2, '0')}T10:00:00.000Z`,
+            ),
+          },
+        }),
+      ),
+    );
+    await prisma.vacancy.create({
+      data: {
+        id: '018f0f64-2d8a-7f0b-8000-000000000112',
+        userId: other.id,
+        pipelineId: otherPipeline.id,
+        title: '000 private',
+        companyName: 'RecruitLane',
+        description: 'Invisible fixture',
+        status: 'OPEN',
+      },
+    });
+
+    const firstPage = await vacanciesService.findAll(owner.id, {
+      page: 1,
+      pageSize: 10,
+    });
+    const secondPage = await vacanciesService.findAll(owner.id, {
+      page: 2,
+      pageSize: 10,
+    });
+
+    expect(firstPage).toMatchObject({
+      page: 1,
+      pageSize: 10,
+      totalItems: 11,
+      totalPages: 2,
+      vacancies: fixtures
+        .slice(0, 10)
+        .map(({ id, status, title }) => ({ id, status, title })),
+    });
+    expect(secondPage).toMatchObject({
+      page: 2,
+      pageSize: 10,
+      totalItems: 11,
+      totalPages: 2,
+      vacancies: [fixtures[10]],
+    });
+  });
+
+  it('filters title globally, treats SQL wildcard characters literally, combines it with status, and preserves owner isolation', async () => {
+    const owner = await recruiter('owner-title-filter@example.com');
+    const other = await recruiter('other-title-filter@example.com');
+    const ownerPipeline = await customPipeline(owner.id, 'Owner title filter');
+    const otherPipeline = await customPipeline(other.id, 'Other title filter');
+    const literalOpen = await prisma.vacancy.create({
+      data: {
+        id: '018f0f64-2d8a-7f0b-8000-000000000201',
+        userId: owner.id,
+        pipelineId: ownerPipeline.id,
+        title: '100%_ Match',
+        companyName: 'RecruitLane',
+        description: 'Literal wildcard fixture',
+        status: 'OPEN',
+      },
+    });
+    const wildcardLikeOpen = await prisma.vacancy.create({
+      data: {
+        id: '018f0f64-2d8a-7f0b-8000-000000000202',
+        userId: owner.id,
+        pipelineId: ownerPipeline.id,
+        title: '100xa Match',
+        companyName: 'RecruitLane',
+        description: 'Wildcard lookalike fixture',
+        status: 'OPEN',
+      },
+    });
+    const literalDraft = await prisma.vacancy.create({
+      data: {
+        id: '018f0f64-2d8a-7f0b-8000-000000000203',
+        userId: owner.id,
+        pipelineId: ownerPipeline.id,
+        title: '100%_ Draft',
+        companyName: 'RecruitLane',
+        description: 'Literal wildcard fixture',
+        status: 'DRAFT',
+      },
+    });
+    const literalFilled = await prisma.vacancy.create({
+      data: {
+        id: '018f0f64-2d8a-7f0b-8000-000000000204',
+        userId: owner.id,
+        pipelineId: ownerPipeline.id,
+        title: '100%_ Filled',
+        companyName: 'RecruitLane',
+        description: 'Literal wildcard fixture',
+        status: 'FILLED',
+      },
+    });
+    await prisma.vacancy.create({
+      data: {
+        id: '018f0f64-2d8a-7f0b-8000-000000000205',
+        userId: other.id,
+        pipelineId: otherPipeline.id,
+        title: '100%_ Private',
+        companyName: 'RecruitLane',
+        description: 'Invisible fixture',
+        status: 'OPEN',
+      },
+    });
+
+    await expect(
+      vacanciesService.findAll(owner.id, {
+        page: 1,
+        pageSize: 10,
+        title: '100%_',
+      }),
+    ).resolves.toMatchObject({
+      vacancies: [
+        { id: literalOpen.id, status: 'OPEN' },
+        { id: literalDraft.id, status: 'DRAFT' },
+        { id: literalFilled.id, status: 'FILLED' },
+      ],
+      page: 1,
+      pageSize: 10,
+      totalItems: 3,
+      totalPages: 1,
+    });
+    await expect(
+      vacanciesService.findAll(owner.id, {
+        page: 1,
+        pageSize: 10,
+        status: ['OPEN', 'OPEN', 'FILLED'],
+        title: 'mAtCh',
+      }),
+    ).resolves.toMatchObject({
+      vacancies: [
+        { id: literalOpen.id, status: 'OPEN' },
+        { id: wildcardLikeOpen.id, status: 'OPEN' },
+      ],
+      page: 1,
+      pageSize: 10,
+      totalItems: 2,
+      totalPages: 1,
+    });
+  });
+
   async function recruiter(email: string) {
     return prisma.user.create({
       data: {
@@ -408,7 +638,9 @@ function createVacanciesService(prisma: PrismaService): VacancyServiceContract {
   // The production module is deliberately absent during RED. Runtime loading
   // keeps this suite valid while making that absence the expected failure.
   const { VacanciesService } = require('./vacancies.service') as {
-    VacanciesService: new (prismaService: PrismaService) => VacancyServiceContract;
+    VacanciesService: new (
+      prismaService: PrismaService,
+    ) => VacancyServiceContract;
   };
   return new VacanciesService(prisma);
 }

@@ -26,6 +26,7 @@ describe('Vacancies HTTP API', () => {
       findFirst: jest.fn(),
       updateMany: jest.fn(),
     },
+    $queryRaw: jest.fn(),
   };
 
   beforeAll(async () => {
@@ -56,7 +57,9 @@ describe('Vacancies HTTP API', () => {
 
   it('requires authentication for every Vacancy endpoint', async () => {
     await request(app.getHttpServer()).get('/api/vacancies').expect(401);
-    await protectedRequest('post', '/api/vacancies').send(validCreate()).expect(401);
+    await protectedRequest('post', '/api/vacancies')
+      .send(validCreate())
+      .expect(401);
     await request(app.getHttpServer())
       .get(`/api/vacancies/${vacancyId}`)
       .expect(401);
@@ -83,11 +86,13 @@ describe('Vacancies HTTP API', () => {
         pipelineId,
       })
       .expect(201)
-      .expect(publicVacancy({
-        title: 'Senior engineer',
-        companyName: 'RecruitLane',
-        description: 'Build\n  useful things',
-      }));
+      .expect(
+        publicVacancy({
+          title: 'Senior engineer',
+          companyName: 'RecruitLane',
+          description: 'Build\n  useful things',
+        }),
+      );
 
     expect(prisma.pipeline.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -108,8 +113,12 @@ describe('Vacancies HTTP API', () => {
     );
   });
 
-  it('lists only public owner summaries ordered by createdAt DESC with paginated metadata', async () => {
+  it('lists public owner summaries with paginated metadata when title is absent', async () => {
     prisma.vacancy.count.mockResolvedValue(2);
+    prisma.$queryRaw.mockResolvedValue([
+      { id: '018f0f64-2d8a-7f0b-8000-000000000009' },
+      { id: vacancyId },
+    ]);
     prisma.vacancy.findMany.mockResolvedValue([
       vacancy({ id: '018f0f64-2d8a-7f0b-8000-000000000009' }),
       vacancy({ id: vacancyId, title: 'Earlier role' }),
@@ -128,18 +137,11 @@ describe('Vacancies HTTP API', () => {
         totalPages: 1,
       });
 
-    expect(prisma.vacancy.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { userId: ownerId },
-        orderBy: { createdAt: 'desc' },
-        skip: 0,
-        take: 10,
-      }),
-    );
   });
 
   it('filters the paginated listing by one status while preserving owner and order', async () => {
     prisma.vacancy.count.mockResolvedValue(1);
+    prisma.$queryRaw.mockResolvedValue([{ id: vacancyId }]);
     prisma.vacancy.findMany.mockResolvedValue([vacancy({ status: 'OPEN' })]);
 
     await authenticatedRequest('get', '/api/vacancies?status=OPEN', ownerId)
@@ -154,18 +156,14 @@ describe('Vacancies HTTP API', () => {
 
     const where = { userId: ownerId, status: { in: ['OPEN'] } };
     expect(prisma.vacancy.count).toHaveBeenCalledWith({ where });
-    expect(prisma.vacancy.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: 0,
-        take: 10,
-      }),
-    );
   });
 
   it('filters by any repeated status before calculating paginated metadata', async () => {
     prisma.vacancy.count.mockResolvedValue(12);
+    prisma.$queryRaw.mockResolvedValue([
+      { id: vacancyId },
+      { id: '018f0f64-2d8a-7f0b-8000-000000000009' },
+    ]);
     prisma.vacancy.findMany.mockResolvedValue([
       vacancy({ status: 'OPEN' }),
       vacancy({
@@ -197,18 +195,11 @@ describe('Vacancies HTTP API', () => {
 
     const where = { userId: ownerId, status: { in: ['OPEN', 'FILLED'] } };
     expect(prisma.vacancy.count).toHaveBeenCalledWith({ where });
-    expect(prisma.vacancy.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: 10,
-        take: 10,
-      }),
-    );
   });
 
   it('deduplicates repeated status values before delegating the listing', async () => {
     prisma.vacancy.count.mockResolvedValue(1);
+    prisma.$queryRaw.mockResolvedValue([{ id: vacancyId }]);
     prisma.vacancy.findMany.mockResolvedValue([vacancy({ status: 'OPEN' })]);
 
     await authenticatedRequest(
@@ -219,9 +210,25 @@ describe('Vacancies HTTP API', () => {
 
     const where = { userId: ownerId, status: { in: ['OPEN'] } };
     expect(prisma.vacancy.count).toHaveBeenCalledWith({ where });
-    expect(prisma.vacancy.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where }),
-    );
+  });
+
+  it('accepts a trimmed scalar title filter without changing the paginated response contract', async () => {
+    prisma.vacancy.count.mockResolvedValue(0);
+    prisma.$queryRaw.mockResolvedValue([]);
+
+    await authenticatedRequest(
+      'get',
+      '/api/vacancies?title=%20match%20',
+      ownerId,
+    )
+      .expect(200)
+      .expect({
+        vacancies: [],
+        page: 1,
+        pageSize: 10,
+        totalItems: 0,
+        totalPages: 0,
+      });
   });
 
   it('returns the public detail only for the authenticated owner', async () => {
@@ -307,7 +314,11 @@ describe('Vacancies HTTP API', () => {
   it('returns VACANCY_NOT_FOUND for a status update on an invisible Vacancy', async () => {
     prisma.vacancy.findFirst.mockResolvedValue(null);
 
-    await authenticatedRequest('patch', `/api/vacancies/${vacancyId}`, otherOwnerId)
+    await authenticatedRequest(
+      'patch',
+      `/api/vacancies/${vacancyId}`,
+      otherOwnerId,
+    )
       .send({ status: 'OPEN' })
       .expect(404)
       .expect({
@@ -318,13 +329,31 @@ describe('Vacancies HTTP API', () => {
   });
 
   it.each([
-    ['a required field is missing', { companyName: 'RecruitLane', description: 'Description', pipelineId }],
-    ['a required field contains only outer whitespace', { ...validCreate(), title: '   ' }],
+    [
+      'a required field is missing',
+      { companyName: 'RecruitLane', description: 'Description', pipelineId },
+    ],
+    [
+      'a required field contains only outer whitespace',
+      { ...validCreate(), title: '   ' },
+    ],
     ['title exceeds its limit', { ...validCreate(), title: 'a'.repeat(201) }],
-    ['companyName exceeds its limit', { ...validCreate(), companyName: 'a'.repeat(201) }],
-    ['description exceeds its limit', { ...validCreate(), description: 'a'.repeat(1501) }],
-    ['pipelineId is not a UUID', { ...validCreate(), pipelineId: 'not-a-uuid' }],
-    ['the client supplies an owner', { ...validCreate(), userId: otherOwnerId }],
+    [
+      'companyName exceeds its limit',
+      { ...validCreate(), companyName: 'a'.repeat(201) },
+    ],
+    [
+      'description exceeds its limit',
+      { ...validCreate(), description: 'a'.repeat(1501) },
+    ],
+    [
+      'pipelineId is not a UUID',
+      { ...validCreate(), pipelineId: 'not-a-uuid' },
+    ],
+    [
+      'the client supplies an owner',
+      { ...validCreate(), userId: otherOwnerId },
+    ],
   ])('rejects POST when %s', async (_description, body) => {
     await authenticatedRequest('post', '/api/vacancies', ownerId)
       .send(body)
@@ -345,7 +374,11 @@ describe('Vacancies HTTP API', () => {
       { status: 'PUBLISHED' },
       { unexpected: 'value' },
     ]) {
-      await authenticatedRequest('patch', `/api/vacancies/${vacancyId}`, ownerId)
+      await authenticatedRequest(
+        'patch',
+        `/api/vacancies/${vacancyId}`,
+        ownerId,
+      )
         .send(body)
         .expect(400);
     }
@@ -358,23 +391,52 @@ describe('Vacancies HTTP API', () => {
     '?status=OPEN,FILLED',
     '?status[]=OPEN',
     '?status[0]=OPEN',
-  ])('rejects the invalid Vacancy status query representation %s', async (query) => {
-    await authenticatedRequest('get', `/api/vacancies${query}`, ownerId).expect(400);
-  });
+  ])(
+    'rejects the invalid Vacancy status query representation %s',
+    async (query) => {
+      await authenticatedRequest(
+        'get',
+        `/api/vacancies${query}`,
+        ownerId,
+      ).expect(400);
+    },
+  );
+
+  it.each([
+    '?title=',
+    '?title=%20%20',
+    '?title=first&title=second',
+    `?title=${'a'.repeat(201)}`,
+  ])(
+    'rejects the invalid Vacancy title query representation %s',
+    async (query) => {
+      await authenticatedRequest(
+        'get',
+        `/api/vacancies${query}`,
+        ownerId,
+      ).expect(400);
+    },
+  );
 
   it('validates route IDs and supported pagination representations', async () => {
-    await authenticatedRequest('get', '/api/vacancies/not-a-uuid', ownerId).expect(
-      400,
-    );
+    await authenticatedRequest(
+      'get',
+      '/api/vacancies/not-a-uuid',
+      ownerId,
+    ).expect(400);
     await authenticatedRequest('get', '/api/vacancies?page=01', ownerId).expect(
       400,
     );
-    await authenticatedRequest('get', '/api/vacancies?pageSize=9', ownerId).expect(
-      400,
-    );
-    await authenticatedRequest('get', '/api/vacancies?unknown=value', ownerId).expect(
-      400,
-    );
+    await authenticatedRequest(
+      'get',
+      '/api/vacancies?pageSize=9',
+      ownerId,
+    ).expect(400);
+    await authenticatedRequest(
+      'get',
+      '/api/vacancies?unknown=value',
+      ownerId,
+    ).expect(400);
   });
 
   it('enforces JSON and Origin/CSRF on Vacancy mutations', async () => {
@@ -422,7 +484,11 @@ describe('Vacancies HTTP API', () => {
       message: 'Vacancy not found',
     });
     prisma.vacancy.findFirst.mockResolvedValue(null);
-    await authenticatedRequest('get', `/api/vacancies/${vacancyId}`, otherOwnerId)
+    await authenticatedRequest(
+      'get',
+      `/api/vacancies/${vacancyId}`,
+      otherOwnerId,
+    )
       .expect(404)
       .expect(vacancyNotFound.getResponse());
   });
@@ -436,11 +502,16 @@ describe('Vacancies HTTP API', () => {
     path: string,
     userId: string,
   ) {
-    return protectedRequest(method, path).set('Cookie', `session=${sessionFor(userId)}`);
+    return protectedRequest(method, path).set(
+      'Cookie',
+      `session=${sessionFor(userId)}`,
+    );
   }
 
   function protectedRequest(method: 'get' | 'post' | 'patch', path: string) {
-    const agent = request(app.getHttpServer())[method](path).set('Host', 'recruitlane.test');
+    const agent = request(app.getHttpServer())
+      [method](path)
+      .set('Host', 'recruitlane.test');
     return method === 'get'
       ? agent
       : agent
@@ -525,9 +596,21 @@ function publicVacancy({
     pipeline: {
       name: 'Hiring',
       stages: [
-        { id: '018f0f64-2d8a-7f0b-8000-000000000005', name: 'Applied', position: 1 },
-        { id: '018f0f64-2d8a-7f0b-8000-000000000006', name: 'Screening', position: 2 },
-        { id: '018f0f64-2d8a-7f0b-8000-000000000007', name: 'Interview', position: 3 },
+        {
+          id: '018f0f64-2d8a-7f0b-8000-000000000005',
+          name: 'Applied',
+          position: 1,
+        },
+        {
+          id: '018f0f64-2d8a-7f0b-8000-000000000006',
+          name: 'Screening',
+          position: 2,
+        },
+        {
+          id: '018f0f64-2d8a-7f0b-8000-000000000007',
+          name: 'Interview',
+          position: 3,
+        },
       ],
     },
   };

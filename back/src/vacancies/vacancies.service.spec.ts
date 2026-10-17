@@ -35,6 +35,7 @@ interface VacancyListQuery {
   page: number;
   pageSize: number;
   status?: VacancyStatus[];
+  title?: string;
 }
 
 interface PublicVacancy {
@@ -118,15 +119,15 @@ describe('VacanciesService', () => {
         vacancy: { create },
       } as unknown as PrismaService);
 
-      await expect(service.create(ownerId, validCreate())).rejects.toMatchObject(
-        {
-          response: {
-            statusCode: 404,
-            code: 'PIPELINE_NOT_FOUND',
-            message: 'Pipeline not found',
-          },
+      await expect(
+        service.create(ownerId, validCreate()),
+      ).rejects.toMatchObject({
+        response: {
+          statusCode: 404,
+          code: 'PIPELINE_NOT_FOUND',
+          message: 'Pipeline not found',
         },
-      );
+      });
       expect(create).not.toHaveBeenCalled();
       expect(findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -142,10 +143,12 @@ describe('VacanciesService', () => {
       vacancy: { findFirst },
     } as unknown as PrismaService);
 
-    await expect(service.findOne(otherOwnerId, vacancyId)).rejects.toBeInstanceOf(
-      NotFoundException,
-    );
-    await expect(service.findOne(otherOwnerId, vacancyId)).rejects.toMatchObject({
+    await expect(
+      service.findOne(otherOwnerId, vacancyId),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    await expect(
+      service.findOne(otherOwnerId, vacancyId),
+    ).rejects.toMatchObject({
       response: {
         statusCode: 404,
         code: 'VACANCY_NOT_FOUND',
@@ -153,7 +156,9 @@ describe('VacanciesService', () => {
       },
     });
     expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: vacancyId, userId: otherOwnerId } }),
+      expect.objectContaining({
+        where: { id: vacancyId, userId: otherOwnerId },
+      }),
     );
   });
 
@@ -274,7 +279,9 @@ describe('VacanciesService', () => {
         vacancy: { findFirst, updateMany },
       } as unknown as PrismaService);
 
-      await expect(service.update(ownerId, vacancyId, { status: to })).rejects.toMatchObject({
+      await expect(
+        service.update(ownerId, vacancyId, { status: to }),
+      ).rejects.toMatchObject({
         response: {
           statusCode: 409,
           code: 'VACANCY_NOT_OPEN',
@@ -323,13 +330,13 @@ describe('VacanciesService', () => {
     expect(updateMany).not.toHaveBeenCalled();
   });
 
-  it('filters the paginated listing by one status while preserving owner, order, and metadata', async () => {
+  it('filters the paginated listing by one status while preserving owner and metadata when title is absent', async () => {
     const count = jest.fn().mockResolvedValue(1);
-    const findMany = jest.fn().mockResolvedValue([
-      vacancy({ status: 'OPEN' }),
-    ]);
+    const queryRaw = jest.fn().mockResolvedValue([{ id: vacancyId }]);
+    const findMany = jest.fn().mockResolvedValue([vacancy({ status: 'OPEN' })]);
     const service = vacanciesService({
       vacancy: { count, findMany },
+      $queryRaw: queryRaw,
     } as unknown as PrismaService);
     const where = { userId: ownerId, status: { in: ['OPEN'] } };
 
@@ -343,24 +350,26 @@ describe('VacanciesService', () => {
       totalPages: 1,
     });
     expect(count).toHaveBeenCalledWith({ where });
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: 0,
-        take: 10,
-      }),
-    );
   });
 
   it('filters by any of several statuses before calculating paginated metadata', async () => {
     const count = jest.fn().mockResolvedValue(12);
+    const queryRaw = jest
+      .fn()
+      .mockResolvedValue([
+        { id: vacancyId },
+        { id: '018f0f64-2d8a-7f0b-8000-000000000009' },
+      ]);
     const findMany = jest.fn().mockResolvedValue([
       vacancy({ status: 'OPEN' }),
-      vacancy({ id: '018f0f64-2d8a-7f0b-8000-000000000009', status: 'FILLED' }),
+      vacancy({
+        id: '018f0f64-2d8a-7f0b-8000-000000000009',
+        status: 'FILLED',
+      }),
     ]);
     const service = vacanciesService({
       vacancy: { count, findMany },
+      $queryRaw: queryRaw,
     } as unknown as PrismaService);
     const where = { userId: ownerId, status: { in: ['OPEN', 'FILLED'] } };
 
@@ -384,23 +393,15 @@ describe('VacanciesService', () => {
       totalPages: 2,
     });
     expect(count).toHaveBeenCalledWith({ where });
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: 10,
-        take: 10,
-      }),
-    );
   });
 
-  it('uses already deduplicated status filters for both listing queries', async () => {
+  it('uses already deduplicated status filters when counting the listing', async () => {
     const count = jest.fn().mockResolvedValue(1);
-    const findMany = jest.fn().mockResolvedValue([
-      vacancy({ status: 'OPEN' }),
-    ]);
+    const queryRaw = jest.fn().mockResolvedValue([{ id: vacancyId }]);
+    const findMany = jest.fn().mockResolvedValue([vacancy({ status: 'OPEN' })]);
     const service = vacanciesService({
       vacancy: { count, findMany },
+      $queryRaw: queryRaw,
     } as unknown as PrismaService);
     const where = { userId: ownerId, status: { in: ['OPEN'] } };
 
@@ -411,9 +412,6 @@ describe('VacanciesService', () => {
     });
 
     expect(count).toHaveBeenCalledWith({ where });
-    expect(findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where }),
-    );
   });
 });
 
@@ -421,7 +419,9 @@ function vacanciesService(prisma: PrismaService): VacancyServiceContract {
   // The production module is deliberately absent during RED. Runtime loading
   // keeps this test type-correct while making that absence the failing cause.
   const { VacanciesService } = require('./vacancies.service') as {
-    VacanciesService: new (prismaService: PrismaService) => VacancyServiceContract;
+    VacanciesService: new (
+      prismaService: PrismaService,
+    ) => VacancyServiceContract;
   };
   return new VacanciesService(prisma);
 }
@@ -521,9 +521,21 @@ function publicVacancy({
     pipeline: {
       name: 'Hiring',
       stages: [
-        { id: '018f0f64-2d8a-7f0b-8000-000000000005', name: 'Applied', position: 1 },
-        { id: '018f0f64-2d8a-7f0b-8000-000000000006', name: 'Screening', position: 2 },
-        { id: '018f0f64-2d8a-7f0b-8000-000000000007', name: 'Interview', position: 3 },
+        {
+          id: '018f0f64-2d8a-7f0b-8000-000000000005',
+          name: 'Applied',
+          position: 1,
+        },
+        {
+          id: '018f0f64-2d8a-7f0b-8000-000000000006',
+          name: 'Screening',
+          position: 2,
+        },
+        {
+          id: '018f0f64-2d8a-7f0b-8000-000000000007',
+          name: 'Interview',
+          position: 3,
+        },
       ],
     },
   };

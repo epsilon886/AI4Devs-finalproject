@@ -99,7 +99,7 @@ function candidatePage(candidates: CandidateFixture[]): CandidatePageFixture {
   return {
     candidates,
     page: 1,
-    pageSize: 10,
+    pageSize: 12,
     totalItems: candidates.length,
     totalPages: candidates.length ? 1 : 0,
   }
@@ -196,7 +196,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada, grace]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -222,7 +222,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -260,7 +260,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -283,7 +283,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -309,7 +309,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -328,7 +328,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -373,7 +373,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -411,7 +411,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
@@ -448,7 +448,7 @@ describe('Candidates 8.2 — Add to vacancy', () => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {

@@ -83,16 +83,19 @@ interface ToastState {
 export function VacanciesPage({ onView }: { onView?: (id: string) => void }) {
   const [page, setPage] = useState(1)
   const [selectedStatuses, setSelectedStatuses] = useState<VacancyStatus[]>([])
+  const [titleInput, setTitleInput] = useState('')
+  const [appliedTitle, setAppliedTitle] = useState('')
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [vacancyToEditId, setVacancyToEditId] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState | null>(null)
   const queryClient = useQueryClient()
   const statusSearch = selectedStatuses.map((status) => `status=${status}`).join('&')
+  const titleSearch = appliedTitle ? `&title=${encodeURIComponent(appliedTitle)}` : ''
   const vacancyQuery = useQuery({
-    queryKey: [...vacancyQueryKey, { page, pageSize, selectedStatuses }],
+    queryKey: [...vacancyQueryKey, { page, pageSize, selectedStatuses, title: appliedTitle }],
     queryFn: () =>
       apiRequest<VacancyPageResponse>(
-        `/vacancies?page=${page}&pageSize=${pageSize}${statusSearch ? `&${statusSearch}` : ''}`,
+        `/vacancies?page=${page}&pageSize=${pageSize}${statusSearch ? `&${statusSearch}` : ''}${titleSearch}`,
       ),
   })
   const detailQuery = useQuery({
@@ -105,6 +108,18 @@ export function VacanciesPage({ onView }: { onView?: (id: string) => void }) {
     setSelectedStatuses((current) =>
       current.includes(status) ? current.filter((value) => value !== status) : [...current, status],
     )
+    setPage(1)
+  }
+
+  function submitTitleSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setAppliedTitle(titleInput.trim())
+    setPage(1)
+  }
+
+  function clearTitleSearch() {
+    setTitleInput('')
+    setAppliedTitle('')
     setPage(1)
   }
 
@@ -136,6 +151,36 @@ export function VacanciesPage({ onView }: { onView?: (id: string) => void }) {
         </div>
 
         <section aria-label="Listado de vacantes" className="mt-6">
+          <form className="mb-4 flex flex-wrap items-end gap-2" onSubmit={submitTitleSearch}>
+            <div>
+              <label className="block text-sm font-medium text-slate-800" htmlFor="vacancy-title-search">
+                Buscar por título
+              </label>
+              <input
+                className="mt-1 rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-blue-600"
+                id="vacancy-title-search"
+                maxLength={200}
+                onChange={(event) => setTitleInput(event.target.value)}
+                type="text"
+                value={titleInput}
+              />
+            </div>
+            <button
+              className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+              type="submit"
+            >
+              Buscar
+            </button>
+            {appliedTitle ? (
+              <button
+                className="rounded-md px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                onClick={clearTitleSearch}
+                type="button"
+              >
+                Limpiar
+              </button>
+            ) : null}
+          </form>
           <div aria-label="Filtrar por estado" className="mb-4 flex flex-wrap gap-2">
             {statuses.map((status) => (
               <button
@@ -173,19 +218,35 @@ export function VacanciesPage({ onView }: { onView?: (id: string) => void }) {
           {data ? (
             <>
               {data.vacancies.length === 0 ? (
-                <EmptyState
-                  action={
-                    <button
-                      className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-                      onClick={() => setIsCreateOpen(true)}
-                      type="button"
-                    >
-                      Crear vacante
-                    </button>
-                  }
-                  description="Crea una vacante para comenzar a organizar tu proceso de selección."
-                  title="No hay vacantes"
-                />
+                appliedTitle ? (
+                  <EmptyState
+                    action={
+                      <button
+                        className="rounded-md border border-blue-600 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
+                        onClick={clearTitleSearch}
+                        type="button"
+                      >
+                        Limpiar búsqueda
+                      </button>
+                    }
+                    description="Prueba con otro título o limpia la búsqueda para ver todas las vacantes."
+                    title="No hay vacantes que coincidan con la búsqueda"
+                  />
+                ) : (
+                  <EmptyState
+                    action={
+                      <button
+                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                        onClick={() => setIsCreateOpen(true)}
+                        type="button"
+                      >
+                        Crear vacante
+                      </button>
+                    }
+                    description="Crea una vacante para comenzar a organizar tu proceso de selección."
+                    title="No hay vacantes"
+                  />
+                )
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
                   <table aria-label="Listado de vacantes" className="min-w-full divide-y divide-slate-200">

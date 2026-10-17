@@ -171,6 +171,16 @@ function shortDate(value: string): string {
   return new Intl.DateTimeFormat('es-AR', { dateStyle: 'short' }).format(new Date(value))
 }
 
+function setKanbanDimensions(
+  board: HTMLElement,
+  { clientWidth, scrollWidth }: { clientWidth: number; scrollWidth: number },
+) {
+  Object.defineProperties(board, {
+    clientWidth: { configurable: true, value: clientWidth },
+    scrollWidth: { configurable: true, value: scrollWidth },
+  })
+}
+
 afterEach(() => {
   vi.unstubAllGlobals()
   vi.clearAllMocks()
@@ -390,5 +400,52 @@ describe('Vacancies 11.1 — Kanban de postulaciones', () => {
 
     expect(await screen.findByText('Grace Hopper')).toBeTruthy()
     expect(screen.queryByText('Ada Lovelace')).toBeNull()
+  })
+
+  it('muestra controles horizontales accesibles al desbordar y los sincroniza con el tablero', async () => {
+    await renderVacancyRoute(`/vacancies/${vacancyId}`, (path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (detailRequest(path, vacancyId)) return jsonResponse(vacancy('OPEN'))
+      if (applicationRequest(path, vacancyId, 1)) return jsonResponse(applicationPage([]))
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const board = await screen.findByRole('group', { name: 'Tablero de etapas' })
+    setKanbanDimensions(board, { clientWidth: 300, scrollWidth: 900 })
+    fireEvent(window, new Event('resize'))
+
+    const controls = await screen.findByRole('group', { name: 'Desplazar etapas' })
+    const previous = within(controls).getByRole('button', { name: 'Anterior' })
+    const next = within(controls).getByRole('button', { name: 'Siguiente' })
+    const range = within(controls).getByRole('slider', { name: 'Posición horizontal de etapas' })
+    expect(previous).toMatchObject({ disabled: true })
+    expect(next.getAttribute('aria-controls')).toBe(board.id)
+
+    fireEvent.click(next)
+    await waitFor(() => expect(board.scrollLeft).toBeGreaterThan(0))
+    fireEvent.change(range, { target: { value: '480' } })
+    expect(board.scrollLeft).toBe(480)
+
+    board.scrollLeft = 120
+    fireEvent.scroll(board)
+    await waitFor(() => expect((range as HTMLInputElement).value).toBe('120'))
+
+    setKanbanDimensions(board, { clientWidth: 900, scrollWidth: 900 })
+    fireEvent(window, new Event('resize'))
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Desplazar etapas' })).toBeNull())
+  })
+
+  it('oculta los controles horizontales cuando el Kanban no tiene overflow', async () => {
+    await renderVacancyRoute(`/vacancies/${vacancyId}`, (path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (detailRequest(path, vacancyId)) return jsonResponse(vacancy('DRAFT'))
+      if (applicationRequest(path, vacancyId, 1)) return jsonResponse(applicationPage([]))
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const board = await screen.findByRole('group', { name: 'Tablero de etapas' })
+    setKanbanDimensions(board, { clientWidth: 900, scrollWidth: 900 })
+    fireEvent(window, new Event('resize'))
+    expect(screen.queryByRole('group', { name: 'Desplazar etapas' })).toBeNull()
   })
 })

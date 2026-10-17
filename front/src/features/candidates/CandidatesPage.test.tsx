@@ -63,7 +63,7 @@ function candidatePage(
   const totalItems = options.totalItems ?? candidates.length
   const totalPages = options.totalPages ?? (totalItems ? 1 : 0)
 
-  return { candidates, page, pageSize: 10, totalItems, totalPages }
+  return { candidates, page, pageSize: 12, totalItems, totalPages }
 }
 
 async function renderCandidatesRoute(
@@ -99,7 +99,7 @@ function respondToSessionAndCandidates(
       return jsonResponse(authenticatedUser)
     }
 
-    if (path === '/api/candidates?page=1&pageSize=10') {
+    if (path === '/api/candidates?page=1&pageSize=12') {
       return jsonResponse(page)
     }
 
@@ -146,7 +146,7 @@ describe('Candidates 8.1', () => {
     expect(screen.queryByText('null')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Eliminar' })).toBeNull()
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/candidates?page=1&pageSize=10',
+      '/api/candidates?page=1&pageSize=12',
       expect.objectContaining({ method: 'GET' }),
     )
   })
@@ -157,7 +157,7 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return new Promise<Response>(() => undefined)
       }
 
@@ -174,7 +174,7 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         candidateRequests += 1
         return candidateRequests === 1
           ? jsonResponse(
@@ -196,7 +196,7 @@ describe('Candidates 8.1', () => {
     expect(await screen.findByText('Ada Lovelace')).toBeTruthy()
     expect(
       fetchMock.mock.calls.filter(
-        ([path]) => path === '/api/candidates?page=1&pageSize=10',
+        ([path]) => path === '/api/candidates?page=1&pageSize=12',
       ),
     ).toHaveLength(2)
   })
@@ -208,30 +208,39 @@ describe('Candidates 8.1', () => {
     expect(screen.getByRole('button', { name: 'Crear candidato' })).toBeTruthy()
   })
 
-  it('uses pageSize 10 and navigates previous and next according to page metadata', async () => {
+  it('uses pageSize 12 and navigates 12 + 1 Candidates according to page metadata', async () => {
+    const firstPageCandidates = Array.from({ length: 12 }, (_, index) => ({
+      ...ada,
+      id: `018f0f64-2d8a-7f0b-8000-${String(100 + index).padStart(12, '0')}`,
+      firstName: `Candidata${index + 1}`,
+      lastName: 'Primera página',
+      email: `candidata${index + 1}@example.com`,
+    }))
     const { fetchMock } = await renderCandidatesRoute((path) => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
-        return jsonResponse(candidatePage([ada], { totalItems: 11, totalPages: 2 }))
+      if (path === '/api/candidates?page=1&pageSize=12') {
+        return jsonResponse(candidatePage(firstPageCandidates, { totalItems: 13, totalPages: 2 }))
       }
 
-      if (path === '/api/candidates?page=2&pageSize=10') {
-        return jsonResponse(candidatePage([grace], { page: 2, totalItems: 11, totalPages: 2 }))
+      if (path === '/api/candidates?page=2&pageSize=12') {
+        return jsonResponse(candidatePage([grace], { page: 2, totalItems: 13, totalPages: 2 }))
       }
 
       throw new Error(`Unexpected request: ${path}`)
     })
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Siguiente' }))
+    expect(await screen.findByText('Candidata12 Primera página')).toBeTruthy()
+    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(12)
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
     expect(await screen.findByText('Grace Hopper')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Anterior' }))
-    expect(await screen.findByText('Ada Lovelace')).toBeTruthy()
+    expect(await screen.findByText('Candidata1 Primera página')).toBeTruthy()
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/candidates?page=2&pageSize=10',
+      '/api/candidates?page=2&pageSize=12',
       expect.objectContaining({ method: 'GET' }),
     )
   })
@@ -242,11 +251,11 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([ada], { totalItems: 11, totalPages: 2 }))
       }
 
-      if (path === '/api/candidates?page=2&pageSize=10') {
+      if (path === '/api/candidates?page=2&pageSize=12') {
         return jsonResponse(candidatePage([], { page: 2, totalItems: 1, totalPages: 1 }))
       }
 
@@ -302,7 +311,7 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         candidateGets += 1
         return jsonResponse(candidatePage(candidateGets === 1 ? [] : [ada]))
       }
@@ -347,7 +356,7 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         candidateGets += 1
         return jsonResponse(candidatePage(candidateGets === 1 ? [ada] : [updatedAda]))
       }
@@ -390,7 +399,7 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([]))
       }
 
@@ -454,7 +463,7 @@ describe('Candidates 8.1', () => {
         return jsonResponse(authenticatedUser)
       }
 
-      if (path === '/api/candidates?page=1&pageSize=10') {
+      if (path === '/api/candidates?page=1&pageSize=12') {
         return jsonResponse(candidatePage([]))
       }
 

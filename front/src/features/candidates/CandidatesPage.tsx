@@ -8,7 +8,7 @@ import { Pagination } from '../../components/Pagination.tsx'
 import { Toast, type ToastType } from '../../components/Toast.tsx'
 import { ApiHttpError, ApiNetworkError, apiRequest } from '../../lib/api.ts'
 
-const pageSize = 10
+const pageSize = 12
 const vacancyPageSize = 100
 const emailPattern = /^[^\s@]+@[^\s@]+$/
 const phonePattern = /^(?:[0-9]{6,30}|\+[0-9]{6,29})$/

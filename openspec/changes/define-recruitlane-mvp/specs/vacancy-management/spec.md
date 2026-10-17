@@ -64,7 +64,7 @@ El sistema MUST exponer `POST /api/vacancies`, `GET /api/vacancies`, `GET /api/v
 
 El detalle público y las respuestas exitosas de POST/PATCH son `{ id, title, companyName, description, status, createdAt, pipeline: { name, stages: [{ id, name, position }] } }`; no expone `pipelineId` y sus stages se ordenan por `position` ASC. PATCH tiene dos modos mutuamente excluyentes: descriptivo con `title`, `companyName` y/o `description`, o de estado con solo `{ status }`. `{}`, combinar `status` con otro campo o enviar `pipelineId` es `400 VALIDATION_ERROR`. Solicitar el estado actual es un no-op válido con `200`; una transición no permitida o una operación del proceso de selección con la Vacancy no abierta responde `409 VACANCY_NOT_OPEN` con `The vacancy does not allow this operation`. Una Vacancy no visible o inexistente responde `404 VACANCY_NOT_FOUND`.
 
-El summary del listado es `{ id, title, companyName, createdAt, status, pipelineName }`. La colección está paginada, ordenada por `createdAt` DESC, y acepta únicamente el filtro opcional `status`. Sus valores múltiples se expresan repitiendo `status`, tienen semántica OR y los repetidos se deduplican; cualquier valor inválido invalida toda la request. No hay otros filtros en V1.
+El summary del listado es `{ id, title, companyName, createdAt, status, pipelineName }`. La colección está paginada y, antes de paginar, se ordena por prioridad de estado `OPEN`, `DRAFT`, `FILLED`, `CANCELLED`; dentro de cada estado por `LOWER(title)` ASC y, ante empate, por `id` ASC. Acepta los filtros opcionales `status` y `title`. Los valores múltiples de `status` se expresan repitiendo `status`, tienen semántica OR y los repetidos se deduplican. `title` es escalar, no repetible, se recorta en sus extremos y debe tener entre 1 y 200 caracteres; busca coincidencias parciales sin distinguir mayúsculas/minúsculas sobre el título, interpretando `%` y `_` literalmente. Cuando ambos filtros están presentes se combinan mediante AND. El filtrado y conteo son globales antes de paginar; un `title` vacío, inválido o repetido, o cualquier `status` inválido, invalida toda la request con `400`.
 
 #### Scenario: Creación HTTP de Vacancy
 - **WHEN** un Recruiter envía a `POST /api/vacancies` los cuatro campos requeridos con un Pipeline propio visible
@@ -74,6 +74,6 @@ El summary del listado es `{ id, title, companyName, createdAt, status, pipeline
 - **WHEN** un Recruiter envía un PATCH descriptivo válido a `PATCH /api/vacancies/:id`
 - **THEN** la API responde `200` con la representación pública actualizada
 
-#### Scenario: Listado filtrado de Vacancies
-- **WHEN** un Recruiter consulta `GET /api/vacancies` repitiendo `status` con estados válidos
-- **THEN** la API responde `200` con el summary paginado de las Vacancies que coinciden con cualquiera de esos estados
+#### Scenario: Listado filtrado y ordenado de Vacancies
+- **WHEN** un Recruiter consulta `GET /api/vacancies` con `status` repetido con estados válidos y/o un `title` válido
+- **THEN** la API responde `200` con el summary paginado de las Vacancies que cumplen los filtros globales, con OR entre estados, AND con título cuando existe y el orden contractual aplicado antes de paginar

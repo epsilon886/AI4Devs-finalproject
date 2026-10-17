@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import {
   type InfiniteData,
   useInfiniteQuery,
@@ -247,6 +247,8 @@ function removeErrorMessage(error: unknown): string {
 
 export function VacancyApplications({ vacancy }: { vacancy: VacancyDetail }) {
   const queryClient = useQueryClient()
+  const kanbanBoardId = useId()
+  const kanbanBoardRef = useRef<HTMLDivElement>(null)
   const applicationsQueryKey = useMemo(
     () => ['vacancy-applications', vacancy.id] as const,
     [vacancy.id],
@@ -254,6 +256,7 @@ export function VacancyApplications({ vacancy }: { vacancy: VacancyDetail }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [applicationToMove, setApplicationToMove] = useState<Application | null>(null)
   const [applicationToRemove, setApplicationToRemove] = useState<Application | null>(null)
+  const [horizontalScroll, setHorizontalScroll] = useState({ position: 0, max: 0 })
   const confirmedApplicationChanges = useRef(new Map<string, Application | null>())
   const applicationsQuery = useInfiniteQuery({
     queryKey: applicationsQueryKey,
@@ -392,6 +395,55 @@ export function VacancyApplications({ vacancy }: { vacancy: VacancyDetail }) {
     [applications, isOpen, stages],
   )
 
+  const syncHorizontalScroll = useCallback(() => {
+    const board = kanbanBoardRef.current
+    if (!board) return
+
+    const max = Math.max(0, board.scrollWidth - board.clientWidth)
+    const position = Math.min(max, Math.max(0, board.scrollLeft))
+    if (board.scrollLeft !== position) board.scrollLeft = position
+    setHorizontalScroll((current) =>
+      current.position === position && current.max === max ? current : { position, max },
+    )
+  }, [])
+
+  function setHorizontalScrollPosition(position: number) {
+    const board = kanbanBoardRef.current
+    if (!board) return
+
+    const max = Math.max(0, board.scrollWidth - board.clientWidth)
+    board.scrollLeft = Math.min(max, Math.max(0, position))
+    syncHorizontalScroll()
+  }
+
+  function moveHorizontalScroll(direction: -1 | 1) {
+    const board = kanbanBoardRef.current
+    if (!board) return
+
+    const step = Math.max(1, Math.max(240, Math.floor(board.clientWidth * 0.8)))
+    setHorizontalScrollPosition(board.scrollLeft + direction * step)
+  }
+
+  useEffect(() => {
+    const board = kanbanBoardRef.current
+    if (!board) return
+
+    syncHorizontalScroll()
+    board.addEventListener('scroll', syncHorizontalScroll, { passive: true })
+    window.addEventListener('resize', syncHorizontalScroll)
+
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined' ? undefined : new ResizeObserver(syncHorizontalScroll)
+    resizeObserver?.observe(board)
+    if (board.firstElementChild) resizeObserver?.observe(board.firstElementChild)
+
+    return () => {
+      board.removeEventListener('scroll', syncHorizontalScroll)
+      window.removeEventListener('resize', syncHorizontalScroll)
+      resizeObserver?.disconnect()
+    }
+  }, [kanbanColumns, syncHorizontalScroll])
+
   const addApplicationModal = isAddModalOpen ? (
     <AddApplicationModal
       onAdded={(application) => {
@@ -448,7 +500,49 @@ export function VacancyApplications({ vacancy }: { vacancy: VacancyDetail }) {
         </button>
       ) : null}
 
-      <div className="overflow-x-auto pb-2">
+      {horizontalScroll.max > 0 ? (
+        <div
+          aria-label="Desplazar etapas"
+          className="sticky top-2 z-10 mb-3 flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white/95 p-2 shadow-sm backdrop-blur"
+          role="group"
+        >
+          <button
+            aria-controls={kanbanBoardId}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={horizontalScroll.position <= 0}
+            onClick={() => moveHorizontalScroll(-1)}
+            type="button"
+          >
+            Anterior
+          </button>
+          <input
+            aria-label="Posición horizontal de etapas"
+            aria-valuetext={`${horizontalScroll.position} de ${horizontalScroll.max}`}
+            className="min-w-36 flex-1"
+            max={horizontalScroll.max}
+            min="0"
+            onChange={(event) => setHorizontalScrollPosition(Number(event.target.value))}
+            type="range"
+            value={horizontalScroll.position}
+          />
+          <button
+            aria-controls={kanbanBoardId}
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={horizontalScroll.position >= horizontalScroll.max}
+            onClick={() => moveHorizontalScroll(1)}
+            type="button"
+          >
+            Siguiente
+          </button>
+        </div>
+      ) : null}
+      <div
+        aria-label="Tablero de etapas"
+        className="overflow-x-auto pb-2"
+        id={kanbanBoardId}
+        ref={kanbanBoardRef}
+        role="group"
+      >
         <div className="flex min-w-max gap-4">
           {kanbanColumns}
         </div>

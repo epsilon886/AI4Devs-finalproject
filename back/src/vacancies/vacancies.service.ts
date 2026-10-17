@@ -69,25 +69,55 @@ export class VacanciesService {
 
   async findAll(
     userId: string,
-    { page, pageSize, status }: VacancyQueryDto,
+    { page, pageSize, status, title }: VacancyQueryDto,
   ): Promise<VacancyPage> {
-    const where = {
+    const statuses = status ? [...new Set(status)] : undefined;
+    const escapedTitle = title === undefined ? undefined : escapeLike(title);
+    const where: Prisma.VacancyWhereInput = {
       userId,
-      ...(status?.length ? { status: { in: status } } : {}),
+      ...(statuses?.length ? { status: { in: statuses } } : {}),
+      ...(escapedTitle === undefined
+        ? {}
+        : { title: { contains: escapedTitle, mode: 'insensitive' } }),
     };
-    const [totalItems, vacancies] = await Promise.all([
+    const [totalItems, rows] = await Promise.all([
       this.prisma.vacancy.count({ where }),
-      this.prisma.vacancy.findMany({
-        where,
-        include: vacancySummaryInclude,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
+      this.prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+        SELECT "id"
+        FROM "vacancies"
+        WHERE "user_id" = CAST(${userId} AS uuid)
+        ${vacancyStatusFilter(statuses)}
+        ${vacancyTitleFilter(escapedTitle)}
+        ORDER BY
+          CASE "status"
+            WHEN 'OPEN'::"vacancy_status" THEN 1
+            WHEN 'DRAFT'::"vacancy_status" THEN 2
+            WHEN 'FILLED'::"vacancy_status" THEN 3
+            WHEN 'CANCELLED'::"vacancy_status" THEN 4
+          END ASC,
+          LOWER("title") ASC,
+          "id" ASC
+        OFFSET ${(page - 1) * pageSize}
+        LIMIT ${pageSize}
+      `),
     ]);
+    const ids = rows.map(({ id }) => id);
+    const vacancies =
+      ids.length === 0
+        ? []
+        : await this.prisma.vacancy.findMany({
+            where: { userId, id: { in: ids } },
+            include: vacancySummaryInclude,
+          });
+    const vacanciesById = new Map(
+      vacancies.map((vacancy) => [vacancy.id, vacancy]),
+    );
 
     return {
-      vacancies: vacancies.map(publicVacancySummary),
+      vacancies: ids.flatMap((id) => {
+        const vacancy = vacanciesById.get(id);
+        return vacancy ? [publicVacancySummary(vacancy)] : [];
+      }),
       page,
       pageSize,
       totalItems,
@@ -152,6 +182,32 @@ export class VacanciesService {
     if (!vacancy) throw vacancyNotFound();
     return vacancy;
   }
+}
+
+function vacancyStatusFilter(
+  statuses: VacancyStatus[] | undefined,
+): Prisma.Sql {
+  if (!statuses?.length) return Prisma.empty;
+
+  return Prisma.sql`
+    AND "status" IN (${Prisma.join(
+      statuses.map(
+        (status) => Prisma.sql`CAST(${status} AS "vacancy_status")`,
+      ),
+    )})
+  `;
+}
+
+function vacancyTitleFilter(title: string | undefined): Prisma.Sql {
+  if (title === undefined) return Prisma.empty;
+
+  return Prisma.sql`
+    AND LOWER("title") LIKE LOWER(${`%${title}%`}) ESCAPE '\\'
+  `;
+}
+
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
 }
 
 export interface PublicVacancy {

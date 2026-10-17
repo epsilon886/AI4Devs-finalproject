@@ -336,11 +336,12 @@ paths:
     get:
       tags: [Vacancies]
       summary: Listar vacantes
-      description: Ordenado por `createdAt` DESC.
+      description: Filtrado y conteo globales antes de paginar. Ordenado por prioridad `OPEN`, `DRAFT`, `FILLED`, `CANCELLED`, luego por `LOWER(title)` ASC e `id` ASC como desempate estable.
       parameters:
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
         - $ref: '#/components/parameters/VacancyStatusFilter'
+        - $ref: '#/components/parameters/VacancyTitleFilter'
       responses:
         '200':
           description: Colección paginada de summaries de vacantes.
@@ -582,6 +583,15 @@ components:
         type: array
         items:
           $ref: '#/components/schemas/VacancyStatus'
+    VacancyTitleFilter:
+      name: title
+      in: query
+      required: false
+      description: Filtro escalar no repetible por coincidencia parcial case-insensitive sobre el título. Se recorta en los extremos, debe contener entre 1 y 200 caracteres; `%` y `_` se interpretan literalmente. Se combina mediante AND con `status`; un `title` vacío, inválido o repetido responde `400`.
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 200
     ApplicationVacancyFilter:
       name: vacancyId
       in: query

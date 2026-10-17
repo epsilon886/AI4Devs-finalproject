@@ -202,7 +202,7 @@ async function renderVacanciesRoute(respond: Responder) {
 
 function isVacanciesRequest(
   path: string,
-  { page, statuses = [] }: { page: number; statuses?: VacancyStatus[] },
+  { page, statuses = [], title }: { page: number; statuses?: VacancyStatus[]; title?: string },
 ): boolean {
   const url = new URL(path, 'http://localhost')
 
@@ -210,7 +210,8 @@ function isVacanciesRequest(
     url.pathname === '/api/vacancies' &&
     url.searchParams.get('page') === String(page) &&
     url.searchParams.get('pageSize') === '10' &&
-    [...url.searchParams.getAll('status')].sort().join(',') === [...statuses].sort().join(',')
+    [...url.searchParams.getAll('status')].sort().join(',') === [...statuses].sort().join(',') &&
+    url.searchParams.get('title') === (title ?? null)
   )
 }
 
@@ -420,6 +421,84 @@ describe('Vacancies 10.1 — listado', () => {
     })
 
     expect(await screen.findByRole('status')).toBeTruthy()
+  })
+
+  it('envía la búsqueda por título solo al confirmarla, la combina con estados y la conserva al paginar', async () => {
+    let filteredRequests = 0
+    const { fetchMock } = await renderVacanciesRoute((path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (isVacanciesRequest(path, { page: 1 })) {
+        return jsonResponse(vacancyPage([draftVacancy], { totalItems: 11, totalPages: 2 }))
+      }
+      if (isVacanciesRequest(path, { page: 1, statuses: ['DRAFT'] })) {
+        return jsonResponse(vacancyPage([draftVacancy]))
+      }
+      if (isVacanciesRequest(path, { page: 1, statuses: ['DRAFT'], title: 'frontend' })) {
+        filteredRequests += 1
+        return jsonResponse(vacancyPage([openVacancy], { totalItems: 2, totalPages: 2 }))
+      }
+      if (isVacanciesRequest(path, { page: 2, statuses: ['DRAFT'], title: 'frontend' })) {
+        return jsonResponse(vacancyPage([draftVacancy], { page: 2, totalItems: 2, totalPages: 2 }))
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    await screen.findByText(draftVacancy.title)
+    fireEvent.click(screen.getByRole('button', { name: 'DRAFT' }))
+    await screen.findByText(draftVacancy.title)
+
+    const searchInput = screen.getByRole('textbox', { name: 'Buscar por título' })
+    fireEvent.change(searchInput, { target: { value: '  frontend  ' } })
+    expect(filteredRequests).toBe(0)
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+
+    expect(await screen.findByText(openVacancy.title)).toBeTruthy()
+    expect(screen.queryByText(draftVacancy.title)).toBeNull()
+    expect(filteredRequests).toBe(1)
+    expect(
+      fetchMock.mock.calls.some(([path]) =>
+        typeof path === 'string'
+          ? isVacanciesRequest(path, { page: 1, statuses: ['DRAFT'], title: 'frontend' })
+          : false,
+      ),
+    ).toBe(true)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
+    expect(await screen.findByText(draftVacancy.title)).toBeTruthy()
+    expect(
+      fetchMock.mock.calls.some(([path]) =>
+        typeof path === 'string'
+          ? isVacanciesRequest(path, { page: 2, statuses: ['DRAFT'], title: 'frontend' })
+          : false,
+      ),
+    ).toBe(true)
+  })
+
+  it('muestra un empty state específico, reintenta con la búsqueda aplicada y permite limpiarla', async () => {
+    let matchingRequests = 0
+    await renderVacanciesRoute((path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (isVacanciesRequest(path, { page: 1 })) return jsonResponse(vacancyPage([draftVacancy]))
+      if (isVacanciesRequest(path, { page: 1, title: 'sin coincidencias' })) {
+        matchingRequests += 1
+        return matchingRequests === 1
+          ? jsonResponse({ statusCode: 500, code: 'INTERNAL_SERVER_ERROR', message: 'Error' }, 500)
+          : jsonResponse(vacancyPage([]))
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    await screen.findByText(draftVacancy.title)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Buscar por título' }), {
+      target: { value: ' sin coincidencias ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Buscar' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Reintentar' }))
+
+    expect(await screen.findByText('No hay vacantes que coincidan con la búsqueda')).toBeTruthy()
+    expect(matchingRequests).toBe(2)
+    fireEvent.click(screen.getByRole('button', { name: 'Limpiar búsqueda' }))
+    expect(await screen.findByText(draftVacancy.title)).toBeTruthy()
   })
 })
 
