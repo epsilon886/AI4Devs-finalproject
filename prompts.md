@@ -67,15 +67,45 @@ El resultado debe permitir representar la arquitectura en un diagrama de alto ni
 
 **Prompt 2:**
 
+Revisa la coherencia de la arquitectura de RecruitLane entre la SPA, la API REST y la persistencia relacional antes de consolidar el diagrama de alto nivel.
+
+Contrasta el flujo Browser → React → NestJS → Prisma → PostgreSQL con el diseño aprobado, el contrato OpenAPI y la estructura real del workspace. Comprueba que la comunicación mediante `/api`, las responsabilidades de cada capa y el aislamiento por Recruiter sean consistentes de extremo a extremo.
+
+No entres en Docker, despliegue productivo ni detalles internos de implementación. Señala únicamente incoherencias arquitectónicas o límites que deban reflejarse en el diagrama.
+
 **Prompt 3:**
+
+Inspecciona la arquitectura aprobada de RecruitLane frente al sistema efectivamente implementado antes de actualizar su representación documental.
+
+Revisa los módulos de frontend y backend, la configuración de Prisma, PostgreSQL y el contrato HTTP vigente. Distingue los componentes ya materializados de las decisiones que siguen siendo conceptuales, especialmente las relativas a un futuro despliegue de mismo origen.
+
+Mantén el enfoque de monolito modular y no propongas nuevas capas, servicios distribuidos ni cambios de alcance. El resultado debe identificar solo los ajustes necesarios para que el diagrama describa fielmente el sistema actual.
 
 ### **2.2. Descripción de componentes principales:**
 
 **Prompt 1:**
 
+Identifica los componentes principales implementados en RecruitLane y describe la responsabilidad de cada uno dentro del flujo funcional del MVP.
+
+Considera la SPA de React, la API REST de NestJS, Prisma, PostgreSQL y los artefactos de especificación. Explica cómo se relacionan al gestionar autenticación, Candidates, Pipelines, Vacancies y Applications, sin convertir la descripción en un listado de archivos ni introducir componentes no existentes.
+
+Prioriza límites claros y responsabilidades comprobables a partir del repositorio y del diseño aprobado.
+
 **Prompt 2:**
 
+Revisa las responsabilidades y límites del frontend implementado de RecruitLane.
+
+Analiza la organización por funcionalidades, las rutas, los componentes compartidos, el cliente HTTP y el uso de TanStack Router, TanStack Query, React Hook Form y estado local. Comprueba que el estado de servidor, el estado de ruta, los formularios y la interfaz local no se mezclen innecesariamente.
+
+No propongas un almacén global, paquetes compartidos ni una librería de componentes. Devuelve únicamente observaciones sobre la separación de responsabilidades ya implementada.
+
 **Prompt 3:**
+
+Revisa los módulos backend y la persistencia de RecruitLane para comprobar que sus responsabilidades se mantengan separadas.
+
+Examina los límites entre controllers, services, guards, validación, módulos de dominio y Prisma/PostgreSQL para autenticación, Candidates, Pipelines, Vacancies y Applications. Verifica especialmente que ownership, reglas de negocio y acceso a datos no queden delegados en una capa inadecuada.
+
+Mantén la arquitectura de monolito modular aprobada. No introduzcas repositorios, casos de uso, interfaces o patrones adicionales sin una necesidad respaldada por el MVP.
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
@@ -91,13 +121,37 @@ No definas todavía scripts, configuración exacta de Docker, CI/CD ni detalles 
 
 **Prompt 2:**
 
+Revisa la evolución de la estructura real del workspace de RecruitLane tras la implementación inicial.
+
+Contrasta los directorios raíz, `front/`, `back/`, `openspec/`, `docs/` y los archivos de configuración del workspace con la organización aprobada. Comprueba que frontend y backend permanezcan separados, que los artefactos de especificación sigan localizables y que no se hayan introducido paquetes compartidos sin justificación.
+
+Propón únicamente ajustes documentales necesarios para representar la estructura vigente; no reorganices archivos ni definas nuevas convenciones.
+
 **Prompt 3:**
+
+Audita la organización interna de frontend y backend frente al diseño aprobado antes de cerrar la documentación de estructura del proyecto.
+
+En el frontend, revisa la separación por funcionalidades, rutas, componentes y utilidades transversales. En el backend, revisa la agrupación por módulos de dominio, código común y persistencia. Identifica duplicaciones estructurales o dependencias entre áreas que contradigan los límites previstos.
+
+No repitas la descripción de responsabilidades de los componentes ni propongas una reorganización especulativa. Limítate a comprobar la consistencia de la estructura de ficheros existente.
 
 ### **2.4. Infraestructura y despliegue**
 
 **Prompt 1:**
 
+Revisa la implementación del entorno local de RecruitLane basada en Docker Compose antes de documentarla.
+
+Inspecciona los servicios de PostgreSQL, migraciones, backend y frontend, junto con sus Dockerfiles, healthcheck y dependencias de arranque. Comprueba que las migraciones versionadas se apliquen antes de iniciar los servicios que dependen de la base de datos y que el flujo de desarrollo no se presente como un despliegue de producción.
+
+No introduzcas proveedor cloud, CI/CD ni configuración productiva. Devuelve solo las correcciones o aclaraciones necesarias sobre la infraestructura local implementada.
+
 **Prompt 2:**
+
+Diseña y revisa un flujo explícito de reset y seed para demostrar RecruitLane en desarrollo sin mezclarlo con el arranque normal.
+
+Antes de proponer cambios, inspecciona el esquema Prisma, las migraciones, Docker Compose y las variables de entorno disponibles. El flujo debe exigir `NODE_ENV=development`, confirmación inequívoca, una contraseña recibida por entorno y un destino PostgreSQL local autorizado; después debe reaplicar las migraciones aprobadas y cargar datos ficticios deterministas que ejerciten paginación, estados y Kanban.
+
+Evita exponer secretos, reutilizar fixtures de tests o permitir el reset contra producción. Verifica que las guardas y el dataset sean coherentes con las reglas actuales del MVP.
 
 **Prompt 3:**
 
@@ -115,6 +169,12 @@ Explica los principales riesgos y trade-offs de la estrategia propuesta sin fija
 
 **Prompt 2:**
 
+Revisa los controles de seguridad implementados en RecruitLane frente a OpenSpec y OpenAPI.
+
+Comprueba el registro y login, el hash de contraseñas, la cookie JWT, la validación de `Origin` y `X-CSRF-Protection` en operaciones mutantes, el ownership transversal y el rate limiting. Contrasta los guards, services y tests relevantes para detectar desviaciones entre el contrato aprobado y el comportamiento observable.
+
+No relajes controles de seguridad ni inventes medidas de infraestructura no implementadas. Distingue los límites conocidos del entorno local de las garantías efectivamente aplicadas por la aplicación.
+
 **Prompt 3:**
 
 ### **2.6. Tests**
@@ -130,6 +190,12 @@ Propón también qué herramientas encajan mejor con el stack previsto y qué ti
 Prioriza tests con valor funcional o de regresión real. No uses el porcentaje de cobertura como objetivo ni propongas tests para detalles internos de librerías o comportamientos presentacionales triviales.
 
 **Prompt 2:**
+
+Aplica un ciclo TDD para corregir y consolidar el listado de Vacancies sin modificar el comportamiento aprobado.
+
+Revisa primero OpenSpec, OpenAPI, DTOs, service y suites existentes. Define cobertura RED para filtros combinados, búsqueda parcial por título con `%` y `_` literales, orden global por estado y título antes de paginar. Si una expectativa interna de Prisma mantiene la estrategia anterior y contradice el contrato, corrige únicamente esa expectativa interna antes de pasar a GREEN.
+
+Implementa el cambio mínimo compatible con consultas parametrizadas y ejecuta las regresiones relevantes de servicio, API e integración. No cambies los escenarios contractuales ni añadas capacidades fuera del MVP.
 
 **Prompt 3:**
 
@@ -225,6 +291,12 @@ No añadas nuevas historias ni amplíes el alcance del MVP durante la revisión.
 
 **Prompt 3:**
 
+Revisa las tres historias de usuario seleccionadas frente a los flujos implementados y las especificaciones vigentes de RecruitLane.
+
+Comprueba que sus criterios de aceptación cubran de forma coherente el recorrido de Candidates, Pipelines, Vacancies y Applications, incluida la consulta y gestión mediante Kanban cuando la Vacancy está `OPEN` y el modo de solo lectura en los demás estados.
+
+Corrige solo desajustes entre comportamiento funcional y criterios existentes. No redactes historias nuevas, no conviertas las historias en documentación técnica y no amplíes el alcance del MVP.
+
 ---
 
 ### 6. Tickets de Trabajo
@@ -257,12 +329,26 @@ Los tres tickets deben ser suficientemente concretos para orientar su futura imp
 
 **Prompt 3:**
 
+Valida los tres tickets de trabajo seleccionados antes de considerarlos listos para su ejecución.
+
+Contrasta su objetivo, alcance, dependencias y criterios de aceptación con OpenSpec, OpenAPI cuando corresponda y el diseño técnico aprobado. Comprueba que cada ticket conserve su capa principal —backend, frontend o base de datos— y que no dependa de decisiones aún abiertas ni introduzca requisitos fuera del MVP.
+
+Señala únicamente ambigüedades o dependencias que deban resolverse para que los tickets sean ejecutables de inicio a fin. No inventes tickets adicionales ni reescribas las especificaciones aprobadas.
+
 ---
 
 ### 7. Pull Requests
 
 **Prompt 1:**
 
+Revisa los cambios documentales representativos de Entrega 1 en los commits realizados, junto con los artefactos OpenSpec y OpenAPI correspondientes.
+
+Sin crear una Pull Request ni modificar archivos, prepara una propuesta de título con la convención `tipo(ámbito): resumen` y una descripción breve que incluya objetivo, alcance, cambios principales y validaciones respaldadas por los cambios reales. Señala cualquier límite o validación que no pueda afirmarse con esa evidencia.
+
 **Prompt 2:**
+
+Revisa el conjunto funcional de Entrega 2 segun los commits realizados, y contrástalo con OpenSpec, OpenAPI y las suites añadidas.
+
+Sin crear una Pull Request ni modificar archivos, prepara una propuesta de título con la convención `tipo(ámbito): resumen` y una descripción breve con objetivo, alcance, cambios principales y validaciones que estén respaldadas por el historial y el diff. Incluye los límites pendientes cuando la evidencia no demuestre una validación completa.
 
 **Prompt 3:**

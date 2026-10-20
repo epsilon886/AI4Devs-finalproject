@@ -27,7 +27,7 @@ RecruitLane es un MVP individual para que cada Recruiter gestione de forma aisla
 
 ### **0.4. URL del proyecto:**
 
-> Puede ser pública o privada, en cuyo caso deberás compartir los accesos de manera segura. Puedes enviarlos a [alvaro@lidr.co](mailto:alvaro@lidr.co) usando algún servicio como [onetimesecret](https://onetimesecret.com/).
+Pendiente de despliegue público (Entrega 3).
 
 ### 0.5. URL o archivo comprimido del repositorio
 
@@ -51,15 +51,93 @@ Las principales funcionalidades del MVP son:
 - **Gestión de Candidates:** creación, consulta y actualización de Candidates propios con sus datos mínimos; el correo es único dentro de la cartera de cada Recruiter.
 - **Gestión de Pipelines:** creación de un Pipeline predeterminado `Default` para cada Recruiter, con sus PipelineStages iniciales, y gestión de Pipelines personalizados de entre tres y diez etapas. Un Pipeline personalizado solo puede editarse o eliminarse lógicamente antes de su primera asociación con una Vacancy; el predeterminado no se edita ni se elimina.
 - **Gestión de Vacancies:** creación y consulta de Vacancies propias, cada una vinculada de forma permanente a un único Pipeline. Comienzan en `DRAFT` y siguen el ciclo de estados definido entre `DRAFT`, `OPEN`, `FILLED` y `CANCELLED`.
-- **Gestión de Applications:** creación de una Application entre un Candidate y una Vacancy propios y abiertos, asignándola inicialmente a la primera PipelineStage. Mientras la Vacancy esté `OPEN`, la Application puede moverse entre las etapas de su Pipeline o eliminarse lógicamente.
+- **Consulta de Vacancies:** listado paginado con filtros por estado y búsqueda explícita, parcial y sin distinción de mayúsculas/minúsculas por título. El backend aplica el orden global `OPEN`, `DRAFT`, `FILLED`, `CANCELLED` antes de paginar.
+- **Gestión de Applications:** creación de una Application entre un Candidate y una Vacancy propios y abiertos, asignándola inicialmente a la primera PipelineStage. Mientras la Vacancy esté `OPEN`, la Application puede moverse entre las etapas de su Pipeline o eliminarse lógicamente. El detalle de la Vacancy ofrece un Kanban para consultar las etapas y las operaciones Add, Move y Remove.
 - **Aislamiento y límites del MVP:** los recursos pertenecen a un único Recruiter y no pueden compartirse ni combinarse entre Recruiters. El alcance no incluye organizaciones, equipos, roles configurables, invitaciones, colaboración, automatizaciones o integraciones; tampoco incluye eliminación de Candidates o Vacancies, recuperación de recursos eliminados ni historial de movimientos entre PipelineStages.
 
 ### **1.3. Diseño y experiencia de usuario:**
 
-> Proporciona imágenes y/o videotutorial mostrando la experiencia del usuario desde que aterriza en la aplicación, pasando por todas las funcionalidades principales.
+El recorrido principal implementado es: registro o login, creación y edición de Candidates, creación y gestión de Pipelines, creación y cambio de estado de Vacancies, y gestión de Applications desde el Kanban de una Vacancy `OPEN`. Los listados incorporan paginación; Candidates usa cards responsivas y Vacancies combina chips de estado con búsqueda remota por título.
+
+#### Acceso y gestión general
+
+![Pantalla de inicio de sesión de RecruitLane](docs/images/login.png)
+
+![Listado de Vacancies con filtros de estado y búsqueda por título](docs/images/vacancies.png)
+
+#### Gestión de recursos
+
+![Listado de Candidates en tarjetas responsivas](docs/images/candidates.png)
+
+![Listado de Pipelines con sus etapas](docs/images/pipelines.png)
+
+#### Flujo principal de selección
+
+![Formulario de creación de una Vacancy con selección de Pipeline](docs/images/vacancyCreate.png)
+
+![Kanban de Applications agrupadas por etapa de Pipeline](docs/images/kanban.png)
 
 ### **1.4. Instrucciones de instalación:**
-> Documenta de manera precisa las instrucciones para instalar y poner en marcha el proyecto en local (librerías, backend, frontend, servidor, base de datos, migraciones y semillas de datos, etc.)
+
+**Requisitos:** Docker Compose y Node.js con pnpm para ejecutar los comandos del workspace fuera de Docker.
+
+1. Instalar las dependencias del workspace:
+
+   ```bash
+   pnpm install
+   ```
+
+2. Crear el archivo local de variables y completarlo sin versionar secretos:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Deben configurarse `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `JWT_SECRET` y `NODE_ENV=development`. Para usar el reset demo, `POSTGRES_DB` debe ser `recruitlane` y `DATABASE_URL` debe apuntar al host interno `postgres`, puerto `5432` (o el puerto por defecto) y esa misma base, que es el único destino autorizado por el script. `DEMO_USER_PASSWORD` se proporciona solo al invocar el reset.
+
+3. Arrancar el entorno de desarrollo:
+
+   ```bash
+   docker compose up -d --build
+   ```
+
+   Compose inicia `postgres`, espera su healthcheck, ejecuta `migrate` con las migraciones Prisma versionadas y, al completarlas, inicia `back` y `front`. La aplicación queda disponible localmente en [http://127.0.0.1:5173](http://127.0.0.1:5173); Vite reenvía `/api` al servicio `back`. Para revisar los servicios:
+
+   ```bash
+   docker compose logs -f front back
+   ```
+
+   Con PostgreSQL ya en ejecución, las migraciones versionadas también pueden aplicarse explícitamente en el servicio de migraciones:
+
+   ```bash
+   docker compose run --rm --no-deps --build migrate
+   ```
+
+4. Opcionalmente, reconstruir la base de desarrollo autorizada con datos demo. Este comando es **destructivo**: elimina todos los datos de esa base, reaplica las migraciones aprobadas y carga el dataset determinista. No se ejecuta durante el arranque normal y no debe usarse en producción.
+
+   Con el servicio `postgres` activo, detén temporalmente `back` y `front` para evitar que atiendan solicitudes durante el reset:
+
+   ```bash
+   docker compose stop back front
+   ```
+
+   ```bash
+   read -rsp 'Contraseña para demo (15-128 caracteres): ' DEMO_USER_PASSWORD; echo
+   export DEMO_USER_PASSWORD
+   docker compose run --rm --no-deps --build \
+     -e DEMO_RESET_CONFIRM=RESET_RECRUITLANE_DEVELOPMENT_DATABASE \
+     -e DEMO_USER_PASSWORD \
+     back pnpm --filter back demo:reset
+   unset DEMO_USER_PASSWORD
+   ```
+
+   Tras completarlo, vuelve a iniciar la aplicación:
+
+   ```bash
+   docker compose up -d back front
+   ```
+
+   El script exige `NODE_ENV=development`, confirmación explícita, una contraseña de entorno válida y que el destino sea el PostgreSQL local autorizado. Crea la cuenta `demo@recruitlane.example`, 125 Candidates, 106 Pipelines, 125 Vacancies y 245 Applications; inicia sesión con esa cuenta y la contraseña introducida. La contraseña no se almacena ni se muestra en esta documentación.
 
 ---
 
@@ -84,36 +162,58 @@ Sus beneficios principales son un desarrollo y despliegue más simples, una pers
 
 | Componente | Tecnologías principales | Responsabilidad |
 | --- | --- | --- |
-| Frontend | React, TypeScript y Vite | SPA prevista que presentará la interfaz y consumirá la API mediante rutas relativas `/api`. |
-| API/backend | NestJS y REST/JSON | Aplicación modular prevista que concentrará las reglas de negocio y expondrá la API. |
-| Persistencia | Prisma y PostgreSQL | Acceso a datos y almacenamiento relacional previstos para el MVP. |
-| Workflow de desarrollo | Docker | Flujo oficial previsto para coordinar frontend, backend, PostgreSQL y migraciones. |
+| Frontend | React, TypeScript, Vite, TanStack Router y TanStack Query | SPA implementada que presenta la interfaz y consume la API mediante rutas relativas `/api`. |
+| API/backend | NestJS y REST/JSON | Aplicación modular implementada que concentra las reglas de negocio y expone la API. |
+| Persistencia | Prisma y PostgreSQL | Cliente de acceso a datos, esquema Prisma, migraciones versionadas y almacenamiento relacional del MVP. |
+| Workflow de desarrollo | Docker Compose | Entorno de desarrollo implementado que coordina frontend, backend, PostgreSQL y la aplicación de migraciones. |
 
 ### **2.3. Descripción de alto nivel del proyecto y estructura de ficheros**
 
-Actualmente el repositorio incluye los artefactos de documentación y OpenSpec, además de los directorios `front/` y `back/` del `pnpm workspace` vigente, con esta organización de alto nivel:
+El repositorio es un workspace de `pnpm` con la siguiente organización de alto nivel:
 
 ```text
-front/    # SPA de React
-back/     # API REST modular de NestJS y acceso Prisma
-openspec/ # especificaciones y decisiones aprobadas
+front/                 # SPA de React, Vite y pruebas de componentes
+back/                  # API modular de NestJS, Prisma, migraciones y pruebas
+compose.yaml           # entorno Docker de desarrollo
+docs/openapi.yaml      # contrato HTTP canónico
+openspec/              # especificaciones, diseño y tareas aprobadas
+readme.md, prompts.md  # evidencia documental de la entrega
 ```
 
-La organización prevista separa frontend y backend dentro de un único repositorio; el backend conserva el enfoque de monolito modular.
+Frontend y backend se mantienen separados dentro de un único repositorio. El backend conserva el enfoque de monolito modular por dominios; el frontend se organiza por funcionalidades y usa el proxy de Vite para enviar `/api` al servicio `back` durante el desarrollo.
 
 ### **2.4. Infraestructura y despliegue**
 
-Docker es el workflow oficial de desarrollo de V1. La composición prevista coordinará los componentes de frontend, backend y PostgreSQL, junto con una tarea de migraciones de ejecución única. La configuración concreta de Docker todavía no está definida.
+Docker Compose es el workflow de desarrollo implementado. Sus servicios son `postgres`, `migrate`, `back` y `front`: `migrate` ejecuta `prisma migrate deploy` después del healthcheck de PostgreSQL, y `back` depende de que esa tarea termine correctamente. El frontend se expone solo en `127.0.0.1:5173` y usa el proxy `/api` hacia el backend dentro de la red de Compose.
 
-El despliegue conceptual será de mismo origen: la SPA se servirá en la raíz HTTPS del host y las solicitudes a `/api` se enrutarán a NestJS. PostgreSQL permanecerá privado y no se expondrá públicamente. El proveedor de despliegue y el mecanismo concreto de proxy siguen pendientes de definición.
+Esta composición es exclusiva del desarrollo local. El despliegue público, proveedor, proxy productivo, CI/CD y configuración de producción quedan para Entrega 3. El despliegue previsto mantendrá el mismo origen y PostgreSQL privado.
 
 ### **2.5. Seguridad**
 
-> Enumera y describe las prácticas de seguridad principales que se han implementado en el proyecto, añadiendo ejemplos si procede
+- Las contraseñas se almacenan mediante **Argon2id**; no se persisten en texto plano.
+- La sesión es un JWT de vida absoluta de cuatro horas en la cookie `session`, con `HttpOnly`, `SameSite=Strict`, `Path=/` y `Secure` cuando `NODE_ENV=production`. El token no se expone al frontend.
+- Las solicitudes mutantes exigen validación same-origin mediante `Origin` y la cabecera `X-CSRF-Protection: 1`; no se configura CORS permisivo para el flujo previsto de mismo origen.
+- NestJS aplica validación HTTP global y respuestas de error normalizadas. Los recursos se consultan y modifican siempre en el ámbito del Recruiter autenticado; recursos inexistentes o de otro propietario no se exponen como accesibles.
+- Registro y login cuentan con rate limiting en memoria. Esta protección no es distribuida ni persistente entre procesos, por lo que no sustituye controles operativos de un despliegue productivo.
+
+Los secretos se configuran mediante el entorno y no se incluyen en el repositorio. La protección de producción (TLS, proxy, operación de secretos, observabilidad y controles distribuidos) está fuera del alcance de esta entrega.
 
 ### **2.6. Tests**
 
-> Describe brevemente algunos de los tests realizados
+El backend usa Jest para pruebas unitarias, de API y de integración con PostgreSQL real mediante Testcontainers. El frontend usa Vitest y React Testing Library para componentes, flujos de formularios, estados de carga/error y operaciones del Kanban. Como validación previa reportada para el cierre de Entrega 2, se obtuvieron 282 tests backend y 180 tests frontend pasando.
+
+Los comandos disponibles son:
+
+```bash
+pnpm --filter back test
+pnpm --filter front test
+pnpm --filter back lint
+pnpm --filter front lint
+pnpm --filter back build
+pnpm --filter front build
+```
+
+Playwright está configurado en el frontend, pero todavía no hay escenarios E2E implementados
 
 ---
 
@@ -204,7 +304,7 @@ erDiagram
 
 - **`User`**: representa la cuenta autenticada del Recruiter y funciona como propietario de candidatos, pipelines y vacantes, garantizando el aislamiento de recursos entre usuarios.
 
-- **`Candidate`**: representa una persona candidata gestionada por un Recruiter. Puede participar en múltiples procesos de selección mediante distintas `Application`.
+- **`Candidate`**: representa una persona candidata gestionada por un Recruiter. Su `phone` es opcional y se representa como `null` cuando no existe; puede participar en múltiples procesos de selección mediante distintas `Application`.
 
 - **`Pipeline`**: define la estructura reutilizable de un proceso de selección. Pertenece a un Recruiter y está compuesto por etapas ordenadas; puede ser el pipeline predeterminado o uno personalizado.
 
@@ -240,7 +340,7 @@ Las relaciones son: User 1:N Candidate, Pipeline y Vacancy; Pipeline 1:N Pipelin
 
 > Si tu backend se comunica a través de API, describe los endpoints principales (máximo 3) en formato OpenAPI. Opcionalmente puedes añadir un ejemplo de petición y de respuesta para mayor claridad
 
-Los siguientes fragmentos usan el servidor base `/api` y referencian los schemas canónicos de `docs/openapi.yaml`.
+Los siguientes tres fragmentos usan el servidor base `/api` y referencian los schemas canónicos de `docs/openapi.yaml`. El contrato HTTP completo y vigente está disponible en [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ```yaml
 paths:
@@ -453,10 +553,26 @@ Estructura de frontend y autenticación disponibles, consulta de Pipelines propi
 
 ## 7. Pull Requests
 
-> Documenta 3 de las Pull Requests realizadas durante la ejecución del proyecto
+### Pull Request 1 — Entrega 1
 
-**Pull Request 1**
+**Título:** `docs(entrega-1): definir MVP, contrato y documentación inicial`
 
-**Pull Request 2**
+**Descripción.** Define y documenta el alcance de RecruitLane antes de su implementación, con requisitos funcionales, historias de usuario, contrato HTTP y documentación de entrega coherentes.
 
-**Pull Request 3**
+**Cambios principales.** Se incorporan los artefactos OpenSpec del MVP, las historias de usuario principales, el contrato OpenAPI y sus decisiones asociadas y la documentación final de Entrega 1, incluidos los prompts representativos.
+
+**Validaciones documentadas.** El historial respalda la creación y alineación de estos artefactos documentales. No se atribuyen pruebas de ejecución ni validaciones manuales a esta propuesta.
+
+### Pull Request 2 — Entrega 2
+
+**Título:** `feat(vacancies): completar flujo de vacantes y postulaciones`
+
+**Descripción.** Completa el flujo de Vacancies y Applications desde backend y persistencia hasta la interfaz, incluido el Kanban y los ajustes necesarios para demostrar paginación, búsqueda y estados del MVP.
+
+**Cambios principales.** Incluye el ciclo de vida de Vacancies y sus pruebas, la gestión backend de Applications, las pantallas de Vacancies, el Kanban con Add, Move y Remove y el cierre de Entrega 2 con búsqueda, orden contractual, dataset demo y mejoras de usabilidad.
+
+**Validaciones documentadas.** Los commits incorporan o actualizan suites unitarias, de API, integración y componentes para estos flujos. La validación reportada al cierre de Entrega 2 fue de 282 tests backend y 180 tests frontend pasando; las pruebas E2E y la validación integral permanecen pendientes.
+
+### Pull Request 3 — Entrega 3
+
+Pendiente de completar en la entrega final.
