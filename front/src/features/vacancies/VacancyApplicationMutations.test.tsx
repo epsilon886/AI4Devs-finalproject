@@ -208,6 +208,38 @@ afterEach(() => {
 })
 
 describe('Vacancies 11.2 — agregar postulaciones', () => {
+  it('muestra el error de carga de Candidates y permite reintentar sin perder la búsqueda para continuar la selección', async () => {
+    let candidateRequests = 0
+    await renderVacancyRoute((path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (path === `/api/vacancies/${vacancyId}`) return jsonResponse(vacancy())
+      if (applicationListRequest(path, 1)) return jsonResponse(applicationPage([]))
+      if (candidateListRequest(path, 1)) {
+        candidateRequests += 1
+        return candidateRequests === 1
+          ? jsonResponse({ statusCode: 500, code: 'INTERNAL_SERVER_ERROR', message: 'Unexpected error' }, 500)
+          : jsonResponse(candidatePage([ada]))
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    await screen.findByText('Mostrando 0 de 0')
+    const dialog = await openAddDialog()
+    const combobox = within(dialog).getByRole('combobox', { name: 'Candidato' }) as HTMLInputElement
+    fireEvent.change(combobox, { target: { value: ada.email } })
+
+    const error = await within(dialog).findByRole('alert')
+    expect(error.textContent).toContain('No pudimos cargar los candidatos.')
+    expect(error.textContent).not.toContain('INTERNAL_SERVER_ERROR')
+    expect(combobox.value).toBe(ada.email)
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reintentar' }))
+    fireEvent.click(await within(dialog).findByRole('option', { name: new RegExp(ada.email) }))
+
+    expect(combobox.value).toBe('Ada Lovelace — ada@example.com')
+    expect(candidateRequests).toBe(2)
+  })
+
   it('ofrece Agregar postulación en OPEN, carga todos los Candidates bajo demanda, busca localmente, exige selección y agrega a la primera stage', async () => {
     const created = application(
       '018f0f64-2d8a-7f0b-8000-000000000201',

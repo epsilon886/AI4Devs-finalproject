@@ -592,6 +592,18 @@ export function VacancyFormModal({
               </ul>
             ) : null}
           </div>
+          {!isEditing && pipelinesQuery.isError ? (
+            <div className="mt-2 text-sm text-red-700" role="alert">
+              <p>No pudimos cargar los pipelines. Inténtalo de nuevo.</p>
+              <button
+                className="mt-2 rounded-md border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
+                onClick={() => void pipelinesQuery.refetch()}
+                type="button"
+              >
+                Reintentar
+              </button>
+            </div>
+          ) : null}
         </div>
 
         {previewStages.length > 0 ? (

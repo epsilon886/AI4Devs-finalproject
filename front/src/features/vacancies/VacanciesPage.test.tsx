@@ -584,6 +584,54 @@ describe('Vacancies 10.1 — Create/Edit', () => {
     expect(preview?.textContent).toMatch(/Revisión.*Entrevista.*Oferta/)
   })
 
+  it('permite reintentar la carga de Pipelines sin perder el formulario ni enviar una Vacancy sin selección', async () => {
+    let pipelineRequests = 0
+    const { fetchMock } = await renderVacanciesRoute((path) => {
+      if (path === '/api/auth/me') {
+        return jsonResponse(authenticatedUser)
+      }
+
+      if (isVacanciesRequest(path, { page: 1 })) {
+        return jsonResponse(vacancyPage([]))
+      }
+
+      if (isPipelinesRequest(path, 1)) {
+        pipelineRequests += 1
+        return pipelineRequests === 1
+          ? jsonResponse({ statusCode: 500, code: 'INTERNAL_SERVER_ERROR', message: 'Database error' }, 500)
+          : jsonResponse(pipelinePage([specialistPipeline]))
+      }
+
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const dialog = await openCreateModal()
+    fillVacancyForm(dialog)
+
+    const error = await within(dialog).findByRole('alert')
+    expect(error.textContent).toContain('No pudimos cargar los pipelines. Inténtalo de nuevo.')
+    expect(error.textContent).not.toContain('INTERNAL_SERVER_ERROR')
+    expect(inputByLabel(dialog, 'Título').value).toBe('Desarrollador frontend')
+    expect(inputByLabel(dialog, 'Empresa').value).toBe('Acme')
+    expect(inputByLabel(dialog, 'Descripción').value).toBe('Construye una experiencia de selección clara.')
+
+    fireEvent.click(saveVacancyButton(dialog))
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(
+          ([path, options]) => path === '/api/vacancies' && options?.method === 'POST',
+        ),
+      ).toBe(false)
+    })
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reintentar' }))
+    const combobox = within(dialog).getByRole('combobox', { name: 'Pipeline' })
+    fireEvent.focus(combobox)
+
+    expect(await within(dialog).findByRole('option', { name: 'Especialista' })).toBeTruthy()
+    expect(pipelineRequests).toBe(2)
+  })
+
   it('crea una Vacancy DRAFT con el POST contractual y actualiza el listado sin recargar el navegador', async () => {
     let listRequests = 0
     const created: VacancyDetailFixture = {

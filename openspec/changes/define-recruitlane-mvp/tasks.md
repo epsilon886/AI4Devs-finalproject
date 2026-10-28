@@ -69,5 +69,5 @@
 
 ## 12. Pruebas frontend e integración
 
-- [ ] 12.1 Añadir pruebas de componentes para los flujos, validaciones, estados de error y restricciones de interacción frontend significativos.
+- [x] 12.1 Añadir pruebas de componentes para los flujos, validaciones, estados de error y restricciones de interacción frontend significativos.
 - [ ] 12.2 Añadir pruebas E2E representativas de autenticación, Candidates, Pipelines y el ciclo Vacancy/Applications antes de ejecutar 5.5.

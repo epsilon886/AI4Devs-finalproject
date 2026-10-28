@@ -278,7 +278,8 @@ describe('Candidates 8.2 — Add to vacancy', () => {
     resolveVacancies?.(jsonResponse(vacancyPage([])))
   })
 
-  it('shows an error when OPEN Vacancies cannot be loaded', async () => {
+  it('muestra el error de carga de Vacancies OPEN y permite reintentar para continuar la selección', async () => {
+    let vacancyRequests = 0
     await renderCandidatesRoute((path) => {
       if (path === '/api/auth/me') {
         return jsonResponse(authenticatedUser)
@@ -287,21 +288,32 @@ describe('Candidates 8.2 — Add to vacancy', () => {
         return jsonResponse(candidatePage([ada]))
       }
       if (isOpenVacanciesRequest(path, 1)) {
-        return jsonResponse(
-          {
-            statusCode: 500,
-            code: 'INTERNAL_SERVER_ERROR',
-            message: 'Unexpected error',
-          },
-          500,
-        )
+        vacancyRequests += 1
+        return vacancyRequests === 1
+          ? jsonResponse(
+              {
+                statusCode: 500,
+                code: 'INTERNAL_SERVER_ERROR',
+                message: 'Unexpected error',
+              },
+              500,
+            )
+          : jsonResponse(vacancyPage([designVacancy]))
       }
 
       throw new Error(`Unexpected request: ${path}`)
     })
 
     const dialog = await openAddToVacancyModal()
-    expect(await within(dialog).findByRole('alert')).toBeTruthy()
+    const error = await within(dialog).findByRole('alert')
+    expect(error.textContent).toContain('No pudimos cargar las vacantes.')
+    expect(error.textContent).not.toContain('INTERNAL_SERVER_ERROR')
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reintentar' }))
+    const combobox = await selectVacancy(dialog)
+
+    expect(combobox.value).toBe('Diseñador de producto — Acme')
+    expect(vacancyRequests).toBe(2)
   })
 
   it('explains when there are no OPEN Vacancies available', async () => {

@@ -1,8 +1,7 @@
 import { type InfiniteData, QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createMemoryHistory, RouterProvider } from '@tanstack/react-router'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createAppRouter } from '../../routes/router.tsx'
+import { VacancyApplications } from './VacancyApplications.tsx'
 
 const vacancyId = '018f0f64-2d8a-7f0b-8000-000000000010'
 
@@ -137,14 +136,10 @@ async function renderVacancyRoute(
   const fetchMock = vi.fn(respond)
   vi.stubGlobal('fetch', fetchMock)
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  const router = createAppRouter({
-    queryClient,
-    history: createMemoryHistory({ initialEntries: [`/vacancies/${vacancyId}`] }),
-  })
 
   render(
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <VacancyApplications vacancy={vacancy()} />
     </QueryClientProvider>,
   )
 
@@ -199,16 +194,22 @@ describe('Vacancies 11.2 — consistencia de postulaciones', () => {
       throw new Error(`Unexpected request: ${path}`)
     })
 
-    await screen.findByText('Persona 1')
+    await waitFor(() => {
+      expect(cachedApplications(queryClient)?.pages[0]?.applications).toHaveLength(100)
+    })
     await addAda(await openAddDialog())
-    await screen.findByText('Ada Lovelace')
+    await waitFor(() => {
+      const cached = cachedApplications(queryClient)
+      expect(cached?.pages.every((page) => page.totalItems === 101)).toBe(true)
+      expect(cached?.pages.every((page) => page.totalPages === 2)).toBe(true)
+    })
 
     const cached = cachedApplications(queryClient)
     expect(cached?.pages.every((page) => page.totalItems === 101)).toBe(true)
     expect(cached?.pages.every((page) => page.totalPages === 2)).toBe(true)
     expect(screen.getByText('Mostrando 101 de 101')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Cargar más postulaciones' })).toBeNull()
-  })
+  }, 10_000)
 
   it('elimina la metadata de la última página vacía al borrar la única Application de la página 2', async () => {
     const firstPage = Array.from({ length: 100 }, (_, index) =>

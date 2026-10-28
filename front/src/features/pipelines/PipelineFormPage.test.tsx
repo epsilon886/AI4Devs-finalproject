@@ -79,6 +79,28 @@ async function renderPipelineList(
   return { fetchMock, queryClient, router }
 }
 
+async function renderPipelineForm(
+  respond: (path: string, options?: RequestInit) => Promise<Response> | Response,
+) {
+  const fetchMock = vi.fn(respond)
+  vi.stubGlobal('fetch', fetchMock)
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  const router = createAppRouter({
+    queryClient,
+    history: createMemoryHistory({ initialEntries: [`/pipelines/form?id=${pipelineId}`] }),
+  })
+
+  render(
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>,
+  )
+
+  return { fetchMock, queryClient, router }
+}
+
 function respondToSessionAndList(path: string): Response {
   if (path === '/api/auth/me') {
     return jsonResponse(authenticatedUser)
@@ -300,6 +322,81 @@ describe('Pipelines 9.2 — creación y edición', () => {
         { id: thirdStageId, name: 'Oferta', position: 3 },
       ],
     })
+  })
+
+  it('bloquea la edición directa de un Pipeline que ya no es editable', async () => {
+    const lockedPipeline = { ...editablePipeline, isEditable: false }
+    const { fetchMock, router } = await renderPipelineForm((path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (path === `/api/pipelines/${pipelineId}`) return jsonResponse(lockedPipeline)
+      if (path === '/api/pipelines?page=1&pageSize=10') return jsonResponse(pipelinePage())
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    expect(await screen.findByText('Este pipeline ya no se puede modificar.')).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: 'Nombre del pipeline' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
+    expect(
+      fetchMock.mock.calls.some(
+        ([path, options]) => path === `/api/pipelines/${pipelineId}` && options?.method === 'PATCH',
+      ),
+    ).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Volver al listado' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/pipelines'))
+  })
+
+  it('no permite editar ni enviar cambios cuando la carga directa responde PIPELINE_NOT_FOUND', async () => {
+    const { fetchMock, router } = await renderPipelineForm((path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (path === `/api/pipelines/${pipelineId}`) {
+        return jsonResponse({ statusCode: 404, code: 'PIPELINE_NOT_FOUND', message: 'Pipeline not found' }, 404)
+      }
+      if (path === '/api/pipelines?page=1&pageSize=10') return jsonResponse(pipelinePage())
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    expect(await screen.findByText('El pipeline no existe o ya no está disponible.')).toBeTruthy()
+    expect(screen.queryByRole('textbox', { name: 'Nombre del pipeline' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
+    expect(
+      fetchMock.mock.calls.some(
+        ([path, options]) => path === `/api/pipelines/${pipelineId}` && options?.method === 'PATCH',
+      ),
+    ).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Volver al listado' }))
+    await waitFor(() => expect(router.state.location.pathname).toBe('/pipelines'))
+  })
+
+  it('permite reintentar una carga técnica fallida y recupera el formulario de edición', async () => {
+    let pipelineRequests = 0
+    const { fetchMock } = await renderPipelineForm((path) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (path === `/api/pipelines/${pipelineId}`) {
+        pipelineRequests += 1
+        return pipelineRequests === 1
+          ? jsonResponse({ statusCode: 500, code: 'INTERNAL_SERVER_ERROR', message: 'Database error' }, 500)
+          : jsonResponse(editablePipeline)
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const error = await screen.findByRole('alert')
+    expect(error.textContent).toContain('No pudimos cargar el pipeline. Inténtalo de nuevo.')
+    expect(error.textContent).not.toContain('INTERNAL_SERVER_ERROR')
+    expect(screen.queryByRole('textbox', { name: 'Nombre del pipeline' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull()
+    expect(
+      fetchMock.mock.calls.some(
+        ([path, options]) => path === `/api/pipelines/${pipelineId}` && options?.method === 'PATCH',
+      ),
+    ).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }))
+
+    expect((await screen.findByRole('textbox', { name: 'Nombre del pipeline' }) as HTMLInputElement).value).toBe(editablePipeline.name)
+    expect(pipelineRequests).toBe(2)
   })
 
   it('deshabilita Guardar mientras está pendiente, evita doble envío, actualiza el listado y confirma el éxito', async () => {

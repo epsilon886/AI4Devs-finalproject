@@ -304,6 +304,63 @@ describe('Pipelines 9.1 — listado y acciones', () => {
     expect(screen.getByText('Pipeline eliminado correctamente.')).toBeTruthy()
   })
 
+  it.each([
+    ['PIPELINE_NOT_EDITABLE', 409],
+    ['INTERNAL_SERVER_ERROR', 500],
+  ])('bloquea envíos duplicados y permite recuperarse tras un DELETE fallido con %s', async (code, status) => {
+    let deleteRequests = 0
+    let resolveFirstDelete: ((response: Response) => void) | undefined
+    const { fetchMock } = await renderPipelinesRoute((path, options) => {
+      if (path === '/api/auth/me') return jsonResponse(authenticatedUser)
+      if (path === '/api/pipelines?page=1&pageSize=10') {
+        return jsonResponse(
+          pipelinePage(
+            deleteRequests >= 2 ? [defaultPipeline] : [defaultPipeline, editablePipeline],
+          ),
+        )
+      }
+      if (path === `/api/pipelines/${editablePipelineId}` && options?.method === 'DELETE') {
+        deleteRequests += 1
+        if (deleteRequests === 1) {
+          return new Promise<Response>((resolve) => {
+            resolveFirstDelete = resolve
+          })
+        }
+        return new Response(null, { status: 204 })
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const row = (await screen.findByText('Selección técnica')).closest('tr')
+    fireEvent.click(within(row!).getByRole('button', { name: 'Eliminar' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Eliminar pipeline' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar eliminación' }))
+
+    const pendingButton = await within(dialog).findByRole('button', { name: 'Eliminando...' })
+    expect(pendingButton).toMatchObject({ disabled: true })
+    fireEvent.click(pendingButton)
+    expect(deleteRequests).toBe(1)
+
+    resolveFirstDelete?.(
+      jsonResponse({ statusCode: status, code, message: 'Pipeline deletion failed' }, status),
+    )
+
+    expect(
+      await screen.findByText('No pudimos eliminar el pipeline. Inténtalo de nuevo.'),
+    ).toBeTruthy()
+    expect(screen.getByRole('dialog', { name: 'Eliminar pipeline' })).toBeTruthy()
+    expect(screen.getByText('Selección técnica')).toBeTruthy()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmar eliminación' }))
+    await waitFor(() => expect(screen.queryByText('Selección técnica')).toBeNull())
+    expect(deleteRequests).toBe(2)
+    expect(
+      fetchMock.mock.calls.filter(
+        ([path, options]) => path === `/api/pipelines/${editablePipelineId}` && options?.method === 'DELETE',
+      ),
+    ).toHaveLength(2)
+  })
+
   it('redirige ante un 401 transversal durante una consulta privada de Pipelines', async () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
     const router = createAppRouter({

@@ -109,7 +109,11 @@ export function PipelineFormPage({ id, onBack }: { id?: string; onBack: () => vo
   }
 
   if (isEditing && pipelineQuery.isError) {
-    return <PipelineUnavailable onBack={onBack} />
+    if (pipelineQuery.error instanceof ApiHttpError && pipelineQuery.error.status === 404 && pipelineQuery.error.code === 'PIPELINE_NOT_FOUND') {
+      return <PipelineUnavailable onBack={onBack} />
+    }
+
+    return <PipelineLoadError onRetry={() => void pipelineQuery.refetch()} />
   }
 
   const pipeline = pipelineQuery.data
@@ -288,6 +292,22 @@ function PipelineUnavailable({ onBack }: { onBack: () => void }) {
         type="button"
       >
         Volver al listado
+      </button>
+    </main>
+  )
+}
+
+function PipelineLoadError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <main className="mx-auto max-w-3xl">
+      <h1 className="text-2xl font-semibold text-slate-900">Editar pipeline</h1>
+      <p className="mt-4 text-slate-700" role="alert">No pudimos cargar el pipeline. Inténtalo de nuevo.</p>
+      <button
+        className="mt-4 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        onClick={onRetry}
+        type="button"
+      >
+        Reintentar
       </button>
     </main>
   )
