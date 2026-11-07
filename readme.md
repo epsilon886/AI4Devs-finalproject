@@ -27,7 +27,7 @@ RecruitLane es un MVP individual para que cada Recruiter gestione de forma aisla
 
 ### **0.4. URL del proyecto:**
 
-Pendiente de despliegue público (Entrega 3).
+No se realizó despliegue público por costos y disponibilidad. RecruitLane puede ejecutarse localmente mediante Docker Compose siguiendo las instrucciones de instalación.
 
 ### 0.5. URL o archivo comprimido del repositorio
 
@@ -93,7 +93,7 @@ El recorrido principal implementado es: registro o login, creación y edición d
    cp .env.example .env
    ```
 
-   Deben configurarse `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `JWT_SECRET` y `NODE_ENV=development`. Para usar el reset demo, `POSTGRES_DB` debe ser `recruitlane` y `DATABASE_URL` debe apuntar al host interno `postgres`, puerto `5432` (o el puerto por defecto) y esa misma base, que es el único destino autorizado por el script. `DEMO_USER_PASSWORD` se proporciona solo al invocar el reset.
+   Deben configurarse `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DATABASE_URL`, `JWT_SECRET` y `NODE_ENV=development`. Para las pruebas E2E se configuran además `E2E_RECRUITER_EMAIL` y `E2E_RECRUITER_PASSWORD` con una cuenta local exclusiva de pruebas. Para usar el reset demo, `POSTGRES_DB` debe ser `recruitlane` y `DATABASE_URL` debe apuntar al host interno `postgres`, puerto `5432` (o el puerto por defecto) y esa misma base, que es el único destino autorizado por el script. `DEMO_USER_PASSWORD` se proporciona solo al invocar el reset.
 
 3. Arrancar el entorno de desarrollo:
 
@@ -113,7 +113,27 @@ El recorrido principal implementado es: registro o login, creación y edición d
    docker compose run --rm --no-deps --build migrate
    ```
 
-4. Opcionalmente, reconstruir la base de desarrollo autorizada con datos demo. Este comando es **destructivo**: elimina todos los datos de esa base, reaplica las migraciones aprobadas y carga el dataset determinista. No se ejecuta durante el arranque normal y no debe usarse en producción.
+4. Preparar Playwright para las pruebas E2E. Con el stack anterior en ejecución, instalar Chromium una vez:
+
+   ```bash
+   pnpm --filter front exec playwright install chromium
+   ```
+
+   Si la cuenta local configurada en `E2E_RECRUITER_EMAIL` todavía no existe, registrarla explícitamente mediante la interfaz:
+
+   ```bash
+   E2E_REGISTER_ACCOUNT=1 pnpm --filter front test:e2e e2e/e2e-register.spec.ts
+   ```
+
+   No se debe repetir este registro con una cuenta ya existente. Las ejecuciones habituales reutilizan esa cuenta y ejecutan los tres escenarios representativos:
+
+   ```bash
+   pnpm --filter front test:e2e
+   ```
+
+   El seed demo no es un fixture E2E y no debe ejecutarse para preparar estos escenarios. El reset demo elimina también la cuenta E2E; si se ejecuta, debe registrarse nuevamente antes de ejecutar la suite habitual.
+
+5. Opcionalmente, reconstruir la base de desarrollo autorizada con datos demo. Este comando es **destructivo**: elimina todos los datos de esa base, reaplica las migraciones aprobadas y carga el dataset determinista. No se ejecuta durante el arranque normal y no debe usarse en producción.
 
    Con el servicio `postgres` activo, detén temporalmente `back` y `front` para evitar que atiendan solicitudes durante el reset:
 
@@ -172,11 +192,12 @@ Sus beneficios principales son un desarrollo y despliegue más simples, una pers
 El repositorio es un workspace de `pnpm` con la siguiente organización de alto nivel:
 
 ```text
-front/                 # SPA de React, Vite y pruebas de componentes
+front/                 # SPA de React, Vite y pruebas de componentes y E2E
 back/                  # API modular de NestJS, Prisma, migraciones y pruebas
 compose.yaml           # entorno Docker de desarrollo
 docs/openapi.yaml      # contrato HTTP canónico
-openspec/              # especificaciones, diseño y tareas aprobadas
+openspec/specs/        # especificaciones canónicas del MVP
+openspec/changes/archive/ # historial de changes completados
 readme.md, prompts.md  # evidencia documental de la entrega
 ```
 
@@ -185,8 +206,6 @@ Frontend y backend se mantienen separados dentro de un único repositorio. El ba
 ### **2.4. Infraestructura y despliegue**
 
 Docker Compose es el workflow de desarrollo implementado. Sus servicios son `postgres`, `migrate`, `back` y `front`: `migrate` ejecuta `prisma migrate deploy` después del healthcheck de PostgreSQL, y `back` depende de que esa tarea termine correctamente. El frontend se expone solo en `127.0.0.1:5173` y usa el proxy `/api` hacia el backend dentro de la red de Compose.
-
-Esta composición es exclusiva del desarrollo local. El despliegue público, proveedor, proxy productivo, CI/CD y configuración de producción quedan para Entrega 3. El despliegue previsto mantendrá el mismo origen y PostgreSQL privado.
 
 ### **2.5. Seguridad**
 
@@ -200,7 +219,7 @@ Los secretos se configuran mediante el entorno y no se incluyen en el repositori
 
 ### **2.6. Tests**
 
-El backend usa Jest para pruebas unitarias, de API y de integración con PostgreSQL real mediante Testcontainers. El frontend usa Vitest y React Testing Library para componentes, flujos de formularios, estados de carga/error y operaciones del Kanban. Como validación previa reportada para el cierre de Entrega 2, se obtuvieron 282 tests backend y 180 tests frontend pasando.
+El backend usa Jest para pruebas unitarias, de API y de integración con PostgreSQL real mediante Testcontainers. El frontend usa Vitest y React Testing Library para componentes, flujos de formularios, estados de carga/error y operaciones del Kanban. Playwright ejecuta contra el stack local los recorridos representativos de autenticación, Candidates/Pipelines/Vacancies y ciclo de vida de Applications. La validación final acreditó 282 tests backend, 187 tests frontend y 3 escenarios E2E habituales pasando.
 
 Los comandos disponibles son:
 
@@ -211,9 +230,10 @@ pnpm --filter back lint
 pnpm --filter front lint
 pnpm --filter back build
 pnpm --filter front build
+pnpm --filter front test:e2e
 ```
 
-Playwright está configurado en el frontend, pero todavía no hay escenarios E2E implementados
+Las pruebas E2E requieren el stack Docker local, Chromium instalado y la cuenta E2E preparada según la sección de instalación. Los comandos de validación finalizaron satisfactoriamente.
 
 ---
 
@@ -575,4 +595,10 @@ Estructura de frontend y autenticación disponibles, consulta de Pipelines propi
 
 ### Pull Request 3 — Entrega 3
 
-Pendiente de completar en la entrega final.
+**Título:** `test(front): completar cobertura de componentes y E2E`
+
+**Descripción.** Completa la validación del MVP de RecruitLane mediante pruebas de componentes frontend, recorridos E2E contra el stack local y el cierre de las especificaciones OpenSpec.
+
+**Cambios principales.** Completa la cobertura de componentes de los flujos frontend significativos y la recuperación ante errores de carga, incorpora tres recorridos E2E representativos con Playwright y sincroniza los requisitos aprobados como specs canónicos de OpenSpec, conservando el change completado en el historial archivado.
+
+**Validaciones documentadas.** La validación global acreditó 282 tests backend, 187 tests frontend y 3 escenarios E2E habituales pasando, además de lint, build y comprobación de diff. El lint de frontend conserva 13 warnings no bloqueantes de `react/only-export-components`.

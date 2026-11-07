@@ -34,7 +34,7 @@
 - [x] 5.2 Añadir pruebas de validación, unicidad, posiciones y sincronización atómica de pipelines, incluida la eliminación lógica permitida y rechazada, su ausencia de flujos normales y la falta de recuperación.
 - [x] 5.3 Añadir pruebas del estado inicial `DRAFT`, del ciclo de vida de vacantes, incluido el no-op de estado idéntico, y de sus restricciones para crear, mover y eliminar Applications.
 - [x] 5.4 Añadir pruebas de creación, unicidad activa, eliminación lógica en vacantes `OPEN`, ausencia de flujos normales y movimientos de Applications, incluido el no-op hacia la etapa actual.
-- [ ] 5.5 Ejecutar la suite de validación definida por el stack aprobado y comprobar que no se incorporaron capacidades excluidas del MVP.
+- [x] 5.5 Ejecutar la suite de validación definida por el stack aprobado y comprobar que no se incorporaron capacidades excluidas del MVP.
 
 ## 6. Foundation y tooling frontend
 

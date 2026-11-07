@@ -153,8 +153,6 @@ Antes de proponer cambios, inspecciona el esquema Prisma, las migraciones, Docke
 
 Evita exponer secretos, reutilizar fixtures de tests o permitir el reset contra producción. Verifica que las guardas y el dataset sean coherentes con las reglas actuales del MVP.
 
-**Prompt 3:**
-
 ### **2.5. Seguridad**
 
 **Prompt 1:**
@@ -174,8 +172,6 @@ Revisa los controles de seguridad implementados en RecruitLane frente a OpenSpec
 Comprueba el registro y login, el hash de contraseñas, la cookie JWT, la validación de `Origin` y `X-CSRF-Protection` en operaciones mutantes, el ownership transversal y el rate limiting. Contrasta los guards, services y tests relevantes para detectar desviaciones entre el contrato aprobado y el comportamiento observable.
 
 No relajes controles de seguridad ni inventes medidas de infraestructura no implementadas. Distingue los límites conocidos del entorno local de las garantías efectivamente aplicadas por la aplicación.
-
-**Prompt 3:**
 
 ### **2.6. Tests**
 
@@ -198,6 +194,12 @@ Revisa primero OpenSpec, OpenAPI, DTOs, service y suites existentes. Define cobe
 Implementa el cambio mínimo compatible con consultas parametrizadas y ejecuta las regresiones relevantes de servicio, API e integración. No cambies los escenarios contractuales ni añadas capacidades fuera del MVP.
 
 **Prompt 3:**
+
+Completa la validación frontend de Entrega 3 sin ampliar el alcance del MVP. Contrasta las brechas de componentes con OpenSpec y añade solo pruebas de regresión para los flujos, errores y restricciones de interacción significativos.
+
+Incorpora una cobertura E2E pequeña con Playwright contra el stack local: el registro de la cuenta E2E debe ser un escenario separado y explícito, mientras que la suite habitual reutiliza esa cuenta y recorre autenticación, Candidates, Pipelines, Vacancies y Applications mediante la interfaz real. No uses el seed demo como fixture ni dependas del orden entre escenarios.
+
+Comprueba también que Vitest mantenga el descubrimiento de pruebas de componentes y excluya los specs de Playwright de `front/e2e/`, conservando sus exclusiones predeterminadas. No introduzcas dependencias, despliegues ni comportamientos de producto nuevos.
 
 ---
 
@@ -352,3 +354,7 @@ Revisa el conjunto funcional de Entrega 2 segun los commits realizados, y contr�
 Sin crear una Pull Request ni modificar archivos, prepara una propuesta de título con la convención `tipo(ámbito): resumen` y una descripción breve con objetivo, alcance, cambios principales y validaciones que estén respaldadas por el historial y el diff. Incluye los límites pendientes cuando la evidencia no demuestre una validación completa.
 
 **Prompt 3:**
+
+Revisa los cambios realizados durante Entrega 3 y contrástalos con OpenSpec, OpenAPI y las validaciones incorporadas.
+
+Sin crear una Pull Request ni modificar archivos, prepara una propuesta de título con la convención `tipo(ámbito): resumen` y una descripción breve con objetivo, alcance, cambios principales y validaciones respaldadas por el historial y el diff. Incluye los límites pendientes cuando la evidencia no demuestre una validación completa.

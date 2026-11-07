@@ -204,6 +204,6 @@ La estrategia de pruebas aprobada está documentada en el `design.md` vigente. E
 - Aplicación de migraciones revisadas en Docker: `docker compose run --rm --no-deps --build migrate`.
 - Estado de migraciones en Docker: `docker compose run --rm --no-deps --entrypoint pnpm migrate --filter back exec prisma migrate status`.
 
-El frontend dispone de tooling de pruebas de componentes con Vitest y React Testing Library, y de configuración Playwright para E2E. Aún no hay escenarios E2E implementados; los comandos anteriores son la suite frontend disponible.
+El frontend dispone de tooling de pruebas de componentes con Vitest y React Testing Library, y de pruebas E2E Playwright en `front/e2e/`; los comandos anteriores son la suite frontend disponible.
 
 Run the narrowest relevant validation during development and the complete documented validation suite before considering a material change finished.
